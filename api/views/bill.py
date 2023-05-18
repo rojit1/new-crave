@@ -16,6 +16,8 @@ from rest_framework.response import Response
 
 
 from bill.models import Bill, PaymentType, TablReturnEntry, TblSalesEntry, TblTaxEntry
+from organization.models import Branch, Organization
+from django.shortcuts import get_object_or_404
 
 
 class PaymentTypeList(ListAPIView):
@@ -29,13 +31,10 @@ class BillInfo(APIView):
         terminal = self.request.query_params.get("terminal")
         branch_and_terminal = f"{branch_code}-{terminal}"
         if not branch_code or not terminal:
-            return Response({"result": "Please enter branch code and terminal"})
-        last_bill_number = (
-            Bill.objects.filter(invoice_number__startswith=branch_and_terminal)
-            .order_by("pk")
-            .reverse()
-            .first()
-        )
+            return Response({"result": "Please enter branch code and terminal"},400)
+        branch = get_object_or_404(Branch, branch_code=branch_code)
+        current_fiscal_year = Organization.objects.last().current_fiscal_year
+        last_bill_number = Bill.objects.filter(terminal=terminal, fiscal_year = current_fiscal_year, branch=branch).order_by('-bill_count_number').first()
         if last_bill_number:
             return Response({"result": last_bill_number.invoice_number})
         return Response({"result": 0})

@@ -22,12 +22,14 @@
 
         {%include 'components/menu_item.html' with path="product" url='product_list' title='Item' icon=" bi bi-box" %}
         {%include 'components/menu_item.html' with path="stock" url='productstock_list' title='Item Stock' icon="bi bi-shop" %}
-        {%include 'components/menu_item.html' with path="bstck" url='branchstock_list' title='Branch Stock' icon="bi bi-shop" %}
+        {%include 'components/menu_item.html' with path="bstck" url='branchstock_list' title='Product Requisition Center' icon="bi bi-shop" %}
 
 
         {%include 'components/menu_item.html' with path="client" url='customerproduct_list' title='Customized Rate' icon=" bi bi-box" %}
 
         {%include 'components/menu_item.html' with path="discount" url='discounttable_list' title='Discount' icon=" bi bi-graph-down" %}
+        {%include 'components/menu_item.html' with path="reconcile" url='reconcile' title='Item Reconcilation' icon=" bi bi-graph-down" %}
+
 
         {%include 'components/menu_title.html' with title="Purchase Management"%}
         {%include 'components/menu_item.html' with path="vendor" url='vendor_list' title='Vendor' icon=" bi bi-shop" %}

@@ -1,5 +1,6 @@
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from openpyxl import load_workbook
+from organization.models import Branch
 
 from django.urls import reverse_lazy
 from django.views.generic import (
@@ -11,8 +12,9 @@ from django.views.generic import (
 )
 from root.utils import DeleteMixin
 from user.permission import IsAdminMixin
-from .models import ProductCategory
+from .models import ProductCategory, ItemReconcilationApiItem
 from .forms import ProductCategoryForm
+import datetime
 
 
 class ProductCategoryMixin(IsAdminMixin):
@@ -117,7 +119,6 @@ class ProductUploadView(View):
                 continue
             try:
                 product = Product.objects.get(title__iexact=data[2])
-                print(product)
                 product.group = data[1]
                 product.price = data[3]
                 product.unit = data[4]
@@ -230,7 +231,7 @@ class ProductStockDelete(ProductStockMixin, DeleteMixin, View):
     pass
 
 """  ----------------   """
-from .models import BranchStock
+from .models import BranchStock, BranchStockTracking
 from .forms import BranchStockForm
 class BranchStockMixin:
     model = BranchStock
@@ -241,16 +242,122 @@ class BranchStockMixin:
 
 class BranchStockList(BranchStockMixin, ListView):
     template_name = "branchstock/branchstock_list.html"
-    queryset = BranchStock.objects.filter(status=True,is_deleted=False)
 
 class BranchStockDetail(BranchStockMixin, DetailView):
     template_name = "branchstock/branchstock_detail.html"
 
 class BranchStockCreate(BranchStockMixin, CreateView):
-    template_name = "create.html"
+    template_name = "branchstock/branchstock_create.html"
 
 class BranchStockUpdate(BranchStockMixin, UpdateView):
     template_name = "update.html"
 
 class BranchStockDelete(BranchStockMixin, DeleteMixin, View):
     pass
+
+
+from datetime import date, datetime
+class ReconcileView(View):
+
+    def get(self, request):
+
+        branch = request.GET.get('branch', None)
+        filter_date = request.GET.get('date')
+        branches = Branch.objects.all()
+        if not branch:
+            return render(request, 'item_reconcilation/reconcilation.html',{'message':'Please Select a Branch', 'branches':branches})
+        if not filter_date:
+            filter_date = date.today().strftime('%Y-%m-%d')
+        else:
+            filter_date = datetime.strptime(filter_date, '%Y-%m-%d').date().strftime('%Y-%m-%d')
+        filter_branch = Branch.objects.get(branch_code__iexact=branch)
+
+
+        if filter_date == date.today().strftime('%Y-%m-%d'):
+            products = Product.objects.all().values()
+            api_items = ItemReconcilationApiItem.objects.filter(date=filter_date, branch=filter_branch).values()
+            # received = BranchStock.objects.filter(branch=filter_branch, created_at__date=filter_date)
+            # prd = Product.objects.prefetch_related('itemreconcilationapiitem_set').filter(itemreconcilationapiitem__date=filter_date)
+            # for p in prd:
+            #     print(p)
+
+            new_products = {}
+            for product in products:
+                for k, v in product.items():
+                    if k =='id':
+                        new_products[str(v)] = product
+                        break
+            
+            for item in api_items:
+                product_id = str(item.get('product_id'))
+                new_products[product_id]['wastage'] = item.get('wastage', 0)
+                new_products[product_id]['returned'] = item.get('returned', 0)
+                new_products[product_id]['physical'] = item.get('physical', 0)
+
+                   
+
+            product_to_view = []
+            for k,v in new_products.items():
+                product_to_view.append(v)
+            context = {
+                'products':product_to_view,
+                'branches':branches,
+                'should_save':True
+            }
+            return render(request, 'item_reconcilation/reconcilation.html',context)
+        # --------------------------
+        products = BranchStockTracking.objects.filter(date=filter_date)
+        context = {
+            'products':products,
+            'branches':branches,
+            'should_save':False
+        }
+        return render(request, 'item_reconcilation/reconcilation.html', context)
+    
+
+    
+    def post(self, request):
+        print(request.POST)
+        return render(request, 'item_reconcilation/reconcilation.html')
+
+
+from django.contrib import messages
+class BranchStockUploadView(View):
+
+    def post(self, request):
+        return redirect(reverse_lazy("branchstock_create"))
+        if BranchStockTracking.objects.first():
+            messages.error(request, "Opening data already exists!!")
+            return redirect(reverse_lazy("branchstock_create"))
+        file = request.FILES.get('file')
+        branches = Branch.objects.all()
+        branch_dict = {}
+        for b in branches:
+            branch_dict[b.branch_code.lower()] = b.pk
+
+        wb = load_workbook(file)
+        excel_data = list()
+        for sheet in wb.worksheets:
+            for row in sheet.iter_rows():
+                row_data = list()
+                for cell in row:
+                    row_data.append(str(cell.value))
+                excel_data.append(row_data)
+        excel_data.pop(0)
+
+        product_dict = {}
+
+        for d in excel_data:
+            try:
+                product_title = d[2].lower()
+                product = product_dict.get(product_title, None)
+                if not product:
+                    product_dict[product_title] = Product.objects.get(title__iexact=product_title).pk
+                product_id = product_dict.get(product_title)
+                branch_id =  branch_dict.get(d[1].lower())
+                quantity = int(d[3])
+                formatted_date = d[0]
+            except Exception as e:
+                print(e)
+
+        return redirect(reverse_lazy("branchstock_create"))

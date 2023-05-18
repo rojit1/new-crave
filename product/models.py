@@ -5,7 +5,6 @@ from django.db.models.signals import post_save
 from organization.models import Branch
 
 
-
 class ProductCategory(BaseModel):
     CATEGORY_CHOICES = (
         ("FOOD", "FOOD"),
@@ -40,6 +39,7 @@ class Product(BaseModel):
     product_id = models.CharField(max_length=255, blank=True, null=True)
     barcode = models.CharField(null=True, max_length=100, blank=True)
     is_produced = models.BooleanField(default=True)
+    # reconcile = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.title} - Rs. {self.price} per {self.unit}"
@@ -98,6 +98,24 @@ class CustomerProduct(BaseModel):
     def __str__(self):
         return f"{self.product.title} - Rs. {self.price}"
 
+
+class BranchStockTracking(BaseModel):
+    branch = models.ForeignKey(Branch, on_delete=models.PROTECT)
+    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    date = models.DateField(null=True, blank=True)
+    opening = models.IntegerField(default=0)
+    received = models.IntegerField(default=0)
+    wastage = models.IntegerField(default=0)
+    returned = models.IntegerField(default=0)
+    sold = models.IntegerField(default=0)
+    closing = models.IntegerField(default=0)
+    physical = models.IntegerField(default=0)
+    discrepancy = models.IntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.product.title} -> {self.branch.name}"
+
+
 class BranchStock(BaseModel):
     branch = models.ForeignKey(Branch, on_delete=models.PROTECT)
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
@@ -112,3 +130,17 @@ class BranchStock(BaseModel):
             product.stock_quantity -= self.quantity
             product.save()
         return super().save(*args, **kwargs)
+    
+
+class ItemReconcilationApiItem(BaseModel):
+    branch = models.ForeignKey(Branch, on_delete=models.PROTECT)
+    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    date = models.DateField(null=True, blank=True)
+    wastage = models.IntegerField(default=0)
+    returned = models.IntegerField(default=0)
+    physical = models.IntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.product.title} -> {self.branch.name}"
+
+

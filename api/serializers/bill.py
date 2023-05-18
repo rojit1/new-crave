@@ -11,9 +11,9 @@ from bill.models import (
     TblTaxEntry,
     BillPayment
 )
-from product.models import Product
+from product.models import BranchStockTracking
 from organization.models import Organization
-
+from datetime import date
 
 class PaymentTypeSerializer(ModelSerializer):
     class Meta:
@@ -68,8 +68,7 @@ class BillSerializer(ModelSerializer):
             "organization",
         ]
         optional_fields = [
-            "fiscal_year",
-            "invoice_number",
+            "fiscal_year"
         ]
 
     def create(self, validated_data):
@@ -77,11 +76,14 @@ class BillSerializer(ModelSerializer):
         items_data = validated_data.pop("bill_items")
         items_void = validated_data.pop("items_void")
         split_payment = validated_data.pop("split_payment")
-
-        
+        payment_mode = validated_data.get('payment_mode') 
+        if not payment_mode.lower() == "complimentary":
+            bill_count_no = int(validated_data.get('invoice_number').split('-')[-1])
+        else:
+            bill_count_no = None
 
         bill = Bill.objects.create(
-            **validated_data, organization=Organization.objects.last()
+            **validated_data, organization=Organization.objects.last(), bill_count_number=bill_count_no
         )
 
         for payment in split_payment:
@@ -89,7 +91,6 @@ class BillSerializer(ModelSerializer):
 
 
         for item in items_data:
-
             bill_item = BillItem.objects.create(
                 product_quantity=item["product_quantity"],
                 rate=item["rate"],
@@ -99,7 +100,6 @@ class BillSerializer(ModelSerializer):
                 kot_id = item.get('kot_id', 0),
                 bot_id = item.get('bot_id', 0),
             )
-
             item_void_key = item.get('item_void_key')
             for void_item in items_void:
                 if void_item['item_void_key'] == item_void_key:

@@ -3,7 +3,7 @@ from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
 
 
-from product.models import CustomerProduct, Product, ProductCategory,ProductMultiprice
+from product.models import CustomerProduct, Product, ProductCategory,ProductMultiprice, BranchStockTracking, ItemReconcilationApiItem
 
 
 class ProductMultipriceSerializer(ModelSerializer):
@@ -98,3 +98,30 @@ class CustomerProductDetailSerializer(ModelSerializer):
         internal = super().to_internal_value(data)
         internal["product"] = product_internal
         return internal
+
+
+class BranchStockTrackingSerializer(serializers.ModelSerializer):
+    date = serializers.DateField(required=True)
+    class Meta:
+        model = BranchStockTracking
+        fields = "branch", "product", 'wastage', 'returned', 'physical', 'date'
+
+
+class ProductReconcileSerializer(serializers.Serializer):
+    products = BranchStockTrackingSerializer(many=True)
+
+
+class ItemReconcilationApiItemSerializer(serializers.ModelSerializer):
+    date = serializers.DateField(required=True)
+    class Meta:
+        model = ItemReconcilationApiItem
+        fields = 'branch', 'product', 'date', 'wastage', 'returned', 'physical'
+
+class BulkItemReconcilationApiItemSerializer(serializers.Serializer):
+    items = ItemReconcilationApiItemSerializer(many=True)
+
+    def create(self, validated_data):
+        items = validated_data.get('items', [])
+        for item in items:
+            ItemReconcilationApiItem.objects.create(**item)
+        return validated_data

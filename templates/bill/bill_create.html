@@ -39,6 +39,7 @@
                             <th class="min-w-175px">Name</th>
                             <th class="w-80px">Rate</th>
                             <th class="min-w-100px">Quantity</th>
+                            <th>Taxable</th>
                             <th class="w-80px">Total</th>
                           </tr>
                         </thead>
@@ -89,34 +90,52 @@ $(document).ready(function() {
    $('#div-id_grand_total').num2words();
 }); 
 
-  $('#id_is_taxable').change(function(){
-          $('#id_is_taxable').val($(this).is(':checked'));
-          calculatePrices()
-  })
+  // $('#id_is_taxable').change(function(){
+  //         $('#id_is_taxable').val($(this).is(':checked'));
+  //         calculatePrices()
+  // })
 
   function calculatePrices(){
-          let idarray = $("#bill_item .text-end")
-                       .find("span") 
-                       .map(function() { return this.id; }) 
-                       .get(); 
-          let sub_total = idarray.map(e=>$(`#${e}`).html()).reduce((total, current) => {
-                  return parseFloat(total) + parseFloat(current);
-              }, 0);
+        let idarray = $("#bill_item .text-end")
+                      .find("span") 
+                      .map(function() { return this.id; }) 
+                      .get(); 
+        let sub_total = idarray.map(e=>$(`#${e}`).html()).reduce((total, current) => {
+                return parseFloat(total) + parseFloat(current);
+            }, 0);
+
+        let actualTaxableAmount = 0
+
+        for(let i of idarray){
+          let items = i.split('_')
+          let id = items[items.length -1]
+          let value =  document.getElementById(`id_bill_item_taxable_${id}`).innerText
+
+          if(value == 'true'){
+            let amount = document.getElementById(`id_bill_item_total_${id}`).innerText
+            let amt = Number.parseFloat(amount).toFixed(2)
+            console.log(typeof amt, amt)
+            actualTaxableAmount+= amt
+          }
           
-          const is_taxable = $('#id_is_taxable').val()
-      if(is_taxable==="true" || is_taxable ==="on"){
-          $('#id_sub_total').val(parseFloat(sub_total).toFixed(2))
-          let discount_amount = $('#id_discount_amount').val()
-          let taxable_amount = $('#id_taxable_amount').val(parseFloat(sub_total- discount_amount).toFixed(2))
-          let tax_amount = $('#id_tax_amount').val(parseFloat(0.13 * taxable_amount.val()).toFixed(2))
-          $('#id_grand_total').val(parseFloat(parseFloat(taxable_amount.val())+ parseFloat(tax_amount.val())).toFixed(2))
-      }else{
-          $('#id_sub_total').val(parseFloat(sub_total).toFixed(2))
-          let discount_amount = $('#id_discount_amount').val()
-          let taxable_amount = $('#id_taxable_amount').val(0)
-          let tax_amount = $('#id_tax_amount').val(0)
-          $('#id_grand_total').val(parseFloat(sub_total).toFixed(2))
-      }
+        }
+
+        console.log(parseFloat(actualTaxableAmount))
+        const is_taxable = $('#id_is_taxable').val()
+
+      // if(is_taxable==="true" || is_taxable ==="on"){
+      //     $('#id_sub_total').val(parseFloat(sub_total).toFixed(2))
+      //     let discount_amount = $('#id_discount_amount').val()
+      //     let taxable_amount = $('#id_taxable_amount').val(parseFloat(sub_total- discount_amount).toFixed(2))
+      //     let tax_amount = $('#id_tax_amount').val(parseFloat(0.13 * taxable_amount.val()).toFixed(2))
+      //     $('#id_grand_total').val(parseFloat(parseFloat(taxable_amount.val())+ parseFloat(tax_amount.val())).toFixed(2))
+      // }else{
+      //     $('#id_sub_total').val(parseFloat(sub_total).toFixed(2))
+      //     let discount_amount = $('#id_discount_amount').val()
+      //     let taxable_amount = $('#id_taxable_amount').val(0)
+      //     let tax_amount = $('#id_tax_amount').val(0)
+      //     $('#id_grand_total').val(parseFloat(sub_total).toFixed(2))
+      // }
     $('#id_grand_total').keyup();
   }
 
@@ -143,8 +162,9 @@ $(document).ready(function() {
           type: "GET",
           success: function(data){
                 const quantity = 1
-                const {title,price} = data
+                const {title,price, is_taxable} = data
                 const total = price * quantity
+                console.log(data)
                 new_data=`
                 <tr data-kt-pos-element="item" data-kt-pos-item-price="33" id="id_bill_item_${id}">
                   <td class="pe-0">
@@ -175,6 +195,11 @@ $(document).ready(function() {
                           </svg>
                         </span>
                       </button>
+                    </div>
+                  </td>
+                  <td class="pe-0">
+                    <div class="d-flex align-items-center">
+                      <p id="id_bill_item_taxable_${id}" name="id_bill_taxable_${id}">${is_taxable}</p>
                     </div>
                   </td>
                   <td class="text-end">

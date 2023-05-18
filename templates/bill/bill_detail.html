@@ -19,7 +19,11 @@
 {% if not object.status %}
     {% include './_bill_card.html' with object=object name="Sales Return" id="invoice-card" %}
 {% elif object.print_count == 1 %}
-    {% include './_bill_card.html' with object=object name="Tax Invoice" id="tax-invoice-card" %}
+    {% if object.payment_mode|lower == "complimentary" %}
+        {% include './_bill_card.html' with object=object name="Complimentary" id="tax-invoice-card" %}
+        {% else %}
+        {% include './_bill_card.html' with object=object name="Tax Invoice" id="tax-invoice-card" %}
+    {% endif %}
     {% include './_bill_card.html' with object=object name="Invoice" id="invoice-card" %}
 {% else %}
     {% include './_bill_card.html' with object=object name="Invoice" id="invoice-card" %}

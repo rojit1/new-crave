@@ -8,7 +8,7 @@ from django.forms import FloatField
 from organization.models import Organization
 from product.models import Product, ProductStock
 from root.utils import BaseModel
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save, m2m_changed
 from .utils import create_journal_for_bill
 
 User = get_user_model()
@@ -146,17 +146,21 @@ class BillItem(BaseModel):
 
 
 ''' Signal for Decresing Product Stock after Sold '''
-
-# def update_stock(sender, instance, **kwargs):
-#     stock = ProductStock.objects.get(product=instance.product)
-#     try:
-#         stock.stock_quantity = stock.stock_quantity - int(instance.product_quantity)
-#         stock.save()
-#     except Exception as e:
-#         print(e)
+# from product.models import BranchStockTracking
+# from datetime import date
+# def reconcile_product(sender, instance, **kwargs):
+#     import pdb
+#     pdb.set_trace()
+    # try:
+    #     branch = instance.bill_set.first().branch
+    #     bst = BranchStockTracking.objects.get(product=instance.product,branch=branch, date=date.today())
+    #     bst.sold +=instance.product_quantity
+    #     bst.save()
+    # except BranchStockTracking.DoesNotExist:
+    #     BranchStockTracking.objects.create(product=instance.product,branch=branch, date=date.today(), sold=instance.product_quantity)
     
 
-# post_save.connect(update_stock, sender=BillItem)
+# m2m_changed.connect(reconcile_product, sender=BillItem.bill_set)
 
 """ **************************************** """
 
@@ -181,7 +185,7 @@ class Bill(BaseModel):
     grand_total = models.FloatField(default=0.0)
     service_charge = models.FloatField(default=0.0)
 
-    invoice_number = models.CharField(max_length=255, null=True, blank=True)
+    invoice_number = models.CharField(max_length=50, null=True, blank=True, unique=True)
     amount_in_words = models.TextField(null=True, blank=True)
     payment_mode = models.CharField(
         max_length=255, default="Cash", blank=True, null=True
@@ -195,41 +199,20 @@ class Bill(BaseModel):
         "organization.Branch", on_delete=models.SET_NULL, null=True
     )
     print_count = models.PositiveIntegerField(default=1)
-    # is_taxable = models.BooleanField(default=True)
+    bill_count_number = models.PositiveIntegerField(blank=True, null=True, db_index=True)
 
     def __str__(self):
         return f"{self.customer_name}-{self.transaction_date}- {self.grand_total}"
+    
+    class Meta:
+        unique_together = 'invoice_number', 'fiscal_year', 'branch'
 
 
 @receiver(post_save, sender=Bill)
 def create_invoice_number(sender, instance, created, **kwargs):
     current_fiscal_year = Organization.objects.last().current_fiscal_year
-    # terminal = "1"
-    # if Bill.objects.all().count() >= 2:
-    #     print("IF LEN 2 : ")
-    #     current_fiscal_year_in_bill = (
-    #         Bill.objects.all().order_by("pk").reverse()[1].fiscal_year
-    #     )
-    #     current_bill_number = (
-    #         Bill.objects.all().order_by("pk").reverse()[1].invoice_number
-    #     )
-    # elif len(Bill.objects.all()) == 1:
-    #     print("IF LEN == 1 : ")
 
-    #     current_fiscal_year_in_bill = current_fiscal_year
-    #     current_bill_number = "PW-0"
-
-    # else:
-    #     print("IF LEN else : ")
-
-    #     current_fiscal_year_in_bill = current_fiscal_year
-    #     current_bill_number = "PW-0"
-    # print(
-    #     "\n\n",
-    #     f"Current Fiscal Year : {current_fiscal_year} \n Current Fiscal Year in Bill : {current_fiscal_year_in_bill} \n Current Bill Number : {current_bill_number}",
-    # )
-
-    if created:
+    if created and not instance.payment_mode.lower() == "complimentary":
 
         try:
             create_journal_for_bill(instance)
@@ -238,39 +221,26 @@ def create_invoice_number(sender, instance, created, **kwargs):
 
         branch = instance.branch.branch_code
         terminal = instance.terminal
-        branch_and_terminal = f"{branch}-{terminal}"
 
         bill_number = 0
         invoice_number = ""
         instance.fiscal_year = current_fiscal_year
-        # if current_bill_number == None:
-        #     bill_number = 1
-        # else:
-        last_bill_number = (
-            Bill.objects.filter(invoice_number__startswith=branch_and_terminal)
-            .order_by("pk")
-            .reverse()
-            .first()
-        )
-        if last_bill_number:
-            current_bill_number_pk = last_bill_number.invoice_number.split("-")[-1]
-
-            if current_bill_number_pk:
-                bill_number = int(current_bill_number_pk) 
-            else:
+        if terminal == 1:
+            last_bill = Bill.objects.filter(terminal=terminal, fiscal_year = current_fiscal_year, branch=instance.branch).order_by('-bill_count_number').first()
+            if not last_bill:
                 bill_number = 1
-            print(bill_number, "Incremented Bill Number")
+            else:
+                bill_number = last_bill.bill_count_number + 1
+
+            if branch is not None:
+                invoice_number = f"{branch}-{terminal}-{bill_number}"
+            else:
+                invoice_number = f"{terminal}-{bill_number}"
+            
+            instance.invoice_number = invoice_number
+            instance.bill_count_number=bill_number
         else:
-            bill_number = 1
-
-        if branch is not None:
-            invoice_number = f"{branch}-{terminal}-{bill_number}"
-
-        else:
-            invoice_number = f"{terminal}-{bill_number}"
-
-        instance.invoice_number = invoice_number
-
+            invoice_number = instance.invoice_number
         a = TblTaxEntry(
             fiscal_year=current_fiscal_year,
             bill_no=invoice_number,

@@ -41,13 +41,17 @@ path('stock/<int:pk>/update/', ProductStockUpdate.as_view(), name='productstock_
 path('stock/delete', ProductStockDelete.as_view(), name='productstock_delete'),
 ]
 
-from .views import BranchStockList,BranchStockDetail,BranchStockCreate,BranchStockUpdate,BranchStockDelete
+from .views import BranchStockList,BranchStockDetail,BranchStockCreate,BranchStockUpdate,BranchStockDelete, BranchStockUploadView, ReconcileView
 urlpatterns += [
 path('bstck/', BranchStockList.as_view(), name='branchstock_list'),
 path('bstck/<int:pk>/', BranchStockDetail.as_view(), name='branchstock_detail'),
 path('bstck/create/', BranchStockCreate.as_view(), name='branchstock_create'),
 path('bstck/<int:pk>/update/', BranchStockUpdate.as_view(), name='branchstock_update'),
 path('bstck/delete', BranchStockDelete.as_view(), name='branchstock_delete'),
+path('reconcile/', ReconcileView.as_view(), name='reconcile'),
+path('bstck/upload/', BranchStockUploadView.as_view(), name='branchstock_upload'),
+ 
+
 ]
                
                

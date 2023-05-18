@@ -36,7 +36,7 @@ from .resources import (
     ReturnEntryResource,
 )
 from organization.models import Organization, Branch
-from product.models import Product
+from product.models import Product, BranchStockTracking
 from bill.models import BillItem
 from user.models import Customer
 import xlwt
@@ -239,6 +239,7 @@ class BillMixin(IsAdminMixin):
         # qc = self.search(qc)
         # qc = self.date_filter(qc)
         # qc = self.terminalSearch(qc)
+
         return qc
 
     def date_filter(self, qc):
@@ -416,7 +417,7 @@ class MarkBillVoid(BillMixin, View):
 
 class BillList(BillMixin, ListView):
     template_name = "bill/bill_list.html"
-    queryset = Bill.objects.filter(is_deleted=False)
+    queryset = Bill.objects.filter(is_deleted=False).order_by('-created_at')
 
 
 class SalesInvoiceSummaryRegister(
@@ -525,7 +526,7 @@ class BillCreate(BillMixin, CreateView):
         form.instance.agent = self.request.user
         form.instance.agent_name = self.request.user.full_name
         form.instance.terminal = 1
-        if form.instance.payment_mode == 'Credit':
+        if form.instance.payment_mode.lower() == 'credit':
             if not form.instance.customer:
                 return self.form_invalid(form)
         self.object = form.save()

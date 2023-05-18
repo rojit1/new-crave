@@ -21,7 +21,7 @@ class BillForm(BaseForm, forms.ModelForm):
         widget=forms.CheckboxSelectMultiple,
         required=False,
     )
-    is_taxable = forms.BooleanField(required=False, initial=True)
+    # is_taxable = forms.BooleanField(required=False, initial=False)
     payment_mode = forms.ChoiceField(
         choices=[
             ("", "-----------------"),
@@ -64,7 +64,7 @@ class BillForm(BaseForm, forms.ModelForm):
             # "bill_items",
             "sub_total",
             "discount_amount",
-            "is_taxable",
+            # "is_taxable",
             "taxable_amount",
             "tax_amount",
             "grand_total",

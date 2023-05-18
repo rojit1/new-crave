@@ -24,7 +24,7 @@ def create_journal_for_bill(instance):
             vat_payable = AccountLedger.objects.get(ledger_name='VAT Payable')
             vat_payable.total_value = vat_payable.total_value + tax_amount
             vat_payable.save()
-            TblCrJournalEntry.objects.create(journal_entry=journal_entry, particulars=f"To Vat Payable", ledger=vat_payable, credit_amount=tax_amount)
+            TblCrJournalEntry.objects.create(journal_entry=journal_entry, particulars=f"To VAT Payable", ledger=vat_payable, credit_amount=tax_amount)
         
     elif payment_mode == "credit card":
         card_transaction_ledger = AccountLedger.objects.get(ledger_name='Card Transactions')
@@ -69,7 +69,7 @@ def create_journal_for_bill(instance):
         TblDrJournalEntry.objects.create(journal_entry=journal_entry, particulars=f"Cash A/C Dr", ledger=cash_ledger, debit_amount=grand_total)
         TblCrJournalEntry.objects.create(journal_entry=journal_entry, particulars=f"To Sales", ledger=sale_ledger, credit_amount=(grand_total-tax_amount))
         if tax_amount > 0:
-            TblCrJournalEntry.objects.create(journal_entry=journal_entry, particulars=f"To Vat Payable", ledger=vat_payable, credit_amount=tax_amount)
+            TblCrJournalEntry.objects.create(journal_entry=journal_entry, particulars=f"To VAT Payable", ledger=vat_payable, credit_amount=tax_amount)
 
 
 
