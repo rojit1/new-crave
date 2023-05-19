@@ -1,4 +1,4 @@
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from openpyxl import load_workbook
 from organization.models import Branch
 
@@ -13,6 +13,7 @@ from django.views.generic import (
 from root.utils import DeleteMixin
 from user.permission import IsAdminMixin
 from .models import ProductCategory, ItemReconcilationApiItem
+from bill.models import Bill
 from .forms import ProductCategoryForm
 import datetime
 
@@ -124,6 +125,7 @@ class ProductUploadView(View):
                 product.unit = data[4]
                 product.is_taxable = True if data[5].lower() == "yes" else False
                 product.is_produced = True if data[6].lower() == "yes" else False
+                product.reconcile = True if data[7].lower() == "yes" else False
                 if "food" in data[0].lower():
                     product.type = food_category
                 elif "beverage" in data[0].lower():
@@ -140,6 +142,7 @@ class ProductUploadView(View):
                 product.unit = data[4]
                 product.is_taxable = True if data[5].lower() == "yes" else False
                 product.is_produced = True if data[6].lower() == "yes" else False
+                product.reconcile = True if data[7].lower() == "yes" else False
                 if "food" in data[0].lower():
                     product.type = food_category
                 elif "beverage" in data[0].lower():
@@ -257,7 +260,8 @@ class BranchStockDelete(BranchStockMixin, DeleteMixin, View):
 
 
 from datetime import date, datetime
-class ReconcileView(View):
+from django.db.models import Sum
+class ReconcileView(View): 
 
     def get(self, request):
 
@@ -270,35 +274,72 @@ class ReconcileView(View):
             filter_date = date.today().strftime('%Y-%m-%d')
         else:
             filter_date = datetime.strptime(filter_date, '%Y-%m-%d').date().strftime('%Y-%m-%d')
-        filter_branch = Branch.objects.get(branch_code__iexact=branch)
+        filter_branch = get_object_or_404(Branch, branch_code__iexact=branch)
+        
 
 
         if filter_date == date.today().strftime('%Y-%m-%d'):
-            products = Product.objects.all().values()
-            api_items = ItemReconcilationApiItem.objects.filter(date=filter_date, branch=filter_branch).values()
-            # received = BranchStock.objects.filter(branch=filter_branch, created_at__date=filter_date)
-            # prd = Product.objects.prefetch_related('itemreconcilationapiitem_set').filter(itemreconcilationapiitem__date=filter_date)
-            # for p in prd:
-            #     print(p)
+            products = Product.objects.filter(reconcile=True).order_by('title').values()
+            api_items = ItemReconcilationApiItem.objects.filter(date=filter_date, branch=filter_branch, product__reconcile=True).values()
+            received = BranchStock.objects.filter(created_at__contains=filter_date, branch=filter_branch, product__reconcile=True).values('product').annotate(quantity=Sum('quantity'))
+            bills = Bill.objects.filter(transaction_date=filter_date, branch=filter_branch)
 
             new_products = {}
             for product in products:
                 for k, v in product.items():
                     if k =='id':
-                        new_products[str(v)] = product
+                        new_products[str(v)] = {'title':product.get('title')}
                         break
-            
+       
             for item in api_items:
                 product_id = str(item.get('product_id'))
                 new_products[product_id]['wastage'] = item.get('wastage', 0)
                 new_products[product_id]['returned'] = item.get('returned', 0)
                 new_products[product_id]['physical'] = item.get('physical', 0)
 
-                   
+            for rec in received:
+                product_id = str(rec.get('product'))
+                new_products[product_id]['received'] = rec.get('quantity')
+            
+            for bill in bills:
+                for item in bill.bill_items.all():
+                    product_id = str(item.product_id)
+                    if item.product.reconcile:
+                        has_sold = new_products[product_id].get('sold', None)
+                        if has_sold:
+                            new_products[product_id]['sold'] += item.product_quantity
+                        else:
+                            new_products[product_id]['sold'] = item.product_quantity
 
             product_to_view = []
             for k,v in new_products.items():
-                product_to_view.append(v)
+                new_dict = {'id': k, **v}
+                if not 'opening' in new_dict:
+                    new_dict['opening'] = 0
+                if not 'received' in new_dict:
+                    new_dict['received'] = 0
+                if not 'wastage' in new_dict:
+                    new_dict['wastage'] = 0
+                if not 'returned' in new_dict:
+                    new_dict['returned'] = 0
+                if not 'sold' in new_dict:
+                    new_dict['sold'] = 0
+                if not 'closing' in new_dict:
+                    new_dict['closing'] = 0
+                if not 'physical' in new_dict:
+                    new_dict['physical'] = 0
+                if not 'discrepancy' in new_dict:
+                    new_dict['discrepancy'] = 0
+
+                product_to_view.append(new_dict)
+            
+            for prd in product_to_view:
+                opening_received = prd.get('opening') + prd.get('received')
+                wastage_returned_sold = prd.get('wastage') + prd.get('returned') + prd.get('sold')
+                closing_value = opening_received - wastage_returned_sold
+                prd['closing'] = closing_value
+                prd['discrepancy'] = prd.get('physical') - closing_value
+
             context = {
                 'products':product_to_view,
                 'branches':branches,
@@ -306,6 +347,8 @@ class ReconcileView(View):
             }
             return render(request, 'item_reconcilation/reconcilation.html',context)
         # --------------------------
+
+
         products = BranchStockTracking.objects.filter(date=filter_date)
         context = {
             'products':products,
@@ -314,11 +357,9 @@ class ReconcileView(View):
         }
         return render(request, 'item_reconcilation/reconcilation.html', context)
     
-
-    
     def post(self, request):
         print(request.POST)
-        return render(request, 'item_reconcilation/reconcilation.html')
+        return render(request, 'item_reconcilation/reconcilation.html', {'branches':Branch.objects.all()})
 
 
 from django.contrib import messages

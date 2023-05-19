@@ -1,5 +1,15 @@
 {%extends 'base.html'%} {%load static%} {%block title%} Create {%endblock%}
 {%block content %}
+
+<style>
+    input[type=text]{
+        pointer-events: none;
+        
+    }
+
+</style>
+
+
 <div class="card p-2">
 
     <div class="card-body p-4 m-4">
@@ -24,12 +34,12 @@
                                     <div class="form-group col-md-4">
                                         <select name="branch" id="branch-select" class="form-control">
                                             {% for branch in branches %}
-                                            <option value="{{branch.branch_code}}">{{branch.name}}</option>
+                                                <option value="{{branch.branch_code}}">{{branch.name}}</option>
                                             {% endfor %}
                                         </select>
                                     </div>
                                     <div class="col-md-4">
-                                        <input type="date" name="date" class="form-control">
+                                        <input type="date" name="date" class="form-control" value="{{request.GET.date}}">
                                     </div>
                                     <div class="col-md-4">
                                         <input type="submit" value="Filter" class="btn btn-primary">
@@ -37,67 +47,65 @@
                                 </div>
                             </form>
                         </div>
-
-
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="row">
-           {% if message %}
-           <h2>{{message}}</h2>
+            {% if message %}
+            <h2>{{message}}</h2>
 
-           {% else %}
-
-           <form method="POST" action="{% url 'reconcile' %}" id="branch-form">
-            {% csrf_token %}
+            {% else %}
             <div class="mt-4 text-center">
                 {% if request.GET.branch %}
                 <h4>{{request.GET.branch}}</h4>
                 {% endif %}
             </div>
-            <div class="mt-5">
-                <table class="table table-hover table-striped table-bordered">
-                    <thead>
-                        <tr class="fw-bolder">
-                            <th>Item Name</th>
-                            <th>Opening</th>
-                            <th>Received</th>
-                            <th>Wastage</th>
-                            <th>Returned</th>
-                            <th>Sold</th>
-                            <th>Closing</th>
-                            <th>Physical</th>
-                            <th>Discrepancy</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for product in products %}
-                        <tr>
-                            <td class="fw-bolder">{{product.title}}</td>
-                            <td>{% if product.opening %} {{product.opening}} {% else %} 0 {% endif %}</td>
-                            <td>{% if product.received %} {{product.received}} {% else %} 0 {% endif %}</td>
-                            <td>{% if product.wastage %} {{product.wastage}} {% else %} 0 {% endif %}</td>
-                            <td>{% if product.returned %} {{product.returned}} {% else %} 0 {% endif %}</td>
-                            <td>{% if product.sold %} {{product.sold}} {% else %} 0 {% endif %}</td>
-                            <td>{% if product.closing %} {{product.closing}} {% else %} 0 {% endif %}</td>
-                            <td>{% if product.physical %} {{product.physical}} {% else %} 0 {% endif %}</td>
-                            <td>0</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
+            <form method="POST" action="{% url 'reconcile' %}" id="branch-form">
+                {% csrf_token %}
 
-                </table>
-            </div>
-            <div class="row col-md-2">
-                {% if should_save %}
+                <div class="mt-5">
+                    <table class="table table-hover table-striped table-bordered">
+                        <thead>
+                            <tr class="fw-bolder">
+                                <th>Item Name</th>
+                                <th>Opening</th>
+                                <th>Received</th>
+                                <th>Wastage</th>
+                                <th>Returned</th>
+                                <th>Sold</th>
+                                <th>Closing</th>
+                                <th>Physical</th>
+                                <th>Discrepancy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in products %}
+                            <tr>
+                                <td class="fw-bolder">{{product.title}}</td>
+                                <td><p name="{{product.id}}">{{product.opening}}</p></td>
+                                <td><p name="{{product.id}}">{{product.received}}</p></td>
+                                <td><p name="{{product.id}}">{{product.wastage}}</p></td>
+                                <td><p name="{{product.id}}">{{product.returned}}</p></td>
+                                <td><p name="{{product.id}}">{{product.sold}}</p></td>
+                                <td>{{product.closing}}</td>
+                                <td> {{product.physical}}</td>
+                                <td>{{product.discrepancy}}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+
+                    </table>
+                </div>
+                <div class="row col-md-2">
+                    {% if should_save %}
                     <input type="submit" value="SAVE" class="btn btn-primary">
-                {% endif %}
-            </div>
-        </form>
+                    {% endif %}
+                </div>
+            </form>
 
-           {% endif %}
+            {% endif %}
 
         </div>
     </div>

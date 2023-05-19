@@ -27,10 +27,13 @@
                         {{field.label}}
                   </label>
                   {% for item in field %}
-                  <div class="col-6 mb-3 form-check form-switch form-check-custom form-check-solid">
+                  <div class="col-4 mb-3 form-check form-switch form-check-custom form-check-solid">
                     {{item}}
                   </div>
                   {% endfor %}
+                  <div class="col-md-12">
+                    <input type="" class="form-control" id="search-product">
+                  </div>
                   <div>
                     <div class="table-responsive mb-8" >
                       <table class="table align-middle gs-0 gy-4 my-0">
@@ -90,10 +93,34 @@ $(document).ready(function() {
    $('#div-id_grand_total').num2words();
 }); 
 
-  // $('#id_is_taxable').change(function(){
-  //         $('#id_is_taxable').val($(this).is(':checked'));
-  //         calculatePrices()
-  // })
+// $('#search-product').select2()
+
+  $('#search-product').select2({
+    placeholder:'Search Items',
+  })
+
+  let checkBoxes = document.querySelectorAll('input[type=checkbox]');
+  for(let cb of checkBoxes){
+    let newOption = new Option(cb.parentElement.innerText, cb.value, false, false);
+    $('#search-product').append(newOption).trigger('change');
+  }
+
+  $('#search-product').on('select2:opening', function (e) {
+    let selectedData = e.params.data;
+    let id = selectedData.id
+    for (let i = 0; i < checkBoxes.length; i++) {
+      if(checkBoxes[i].value == id){
+        checkBoxes[i].checked = true
+        checkBoxes[i].click
+        handleClick(checkBoxes[i])
+        break;
+      }
+    }
+
+    console
+
+  });
+
 
   function calculatePrices(){
         let idarray = $("#bill_item .text-end")
@@ -113,29 +140,22 @@ $(document).ready(function() {
 
           if(value == 'true'){
             let amount = document.getElementById(`id_bill_item_total_${id}`).innerText
-            let amt = Number.parseFloat(amount).toFixed(2)
-            console.log(typeof amt, amt)
-            actualTaxableAmount+= amt
+            let parsedAmount = parseFloat(amount)
+            actualTaxableAmount+= parsedAmount
           }
           
         }
+        $('#id_sub_total').val(parseFloat(sub_total).toFixed(2))
+        let discount_amount = $('#id_discount_amount').val() || 0.0
+        let taxable_amount = $('#id_taxable_amount').val(actualTaxableAmount.toFixed(2))
+        let tax_amount = $('#id_tax_amount').val(parseFloat(0.13 * actualTaxableAmount).toFixed(2))
+        // $('#id_grand_total').val(parseFloat(parseFloat(taxable_amount.val())+ parseFloat(tax_amount.val())).toFixed(2))
 
-        console.log(parseFloat(actualTaxableAmount))
-        const is_taxable = $('#id_is_taxable').val()
+        $('#id_grand_total').val(parseFloat(sub_total)+parseFloat(tax_amount.val()) - parseFloat(discount_amount) )
 
-      // if(is_taxable==="true" || is_taxable ==="on"){
-      //     $('#id_sub_total').val(parseFloat(sub_total).toFixed(2))
-      //     let discount_amount = $('#id_discount_amount').val()
-      //     let taxable_amount = $('#id_taxable_amount').val(parseFloat(sub_total- discount_amount).toFixed(2))
-      //     let tax_amount = $('#id_tax_amount').val(parseFloat(0.13 * taxable_amount.val()).toFixed(2))
-      //     $('#id_grand_total').val(parseFloat(parseFloat(taxable_amount.val())+ parseFloat(tax_amount.val())).toFixed(2))
-      // }else{
-      //     $('#id_sub_total').val(parseFloat(sub_total).toFixed(2))
-      //     let discount_amount = $('#id_discount_amount').val()
-      //     let taxable_amount = $('#id_taxable_amount').val(0)
-      //     let tax_amount = $('#id_tax_amount').val(0)
-      //     $('#id_grand_total').val(parseFloat(sub_total).toFixed(2))
-      // }
+
+
+        
     $('#id_grand_total').keyup();
   }
 
@@ -164,7 +184,6 @@ $(document).ready(function() {
                 const quantity = 1
                 const {title,price, is_taxable} = data
                 const total = price * quantity
-                console.log(data)
                 new_data=`
                 <tr data-kt-pos-element="item" data-kt-pos-item-price="33" id="id_bill_item_${id}">
                   <td class="pe-0">
@@ -214,6 +233,8 @@ $(document).ready(function() {
   
 
   async function handleClick(e) {
+    $('#search-product').val([]).trigger("change"); 
+    // $('#search-product').select2('val', '')
       const id = e.value
       let billItem = await getBillItem(id)
       if(e.checked){
@@ -224,6 +245,9 @@ $(document).ready(function() {
           calculatePrices()
       }
   }
+
+  
+
   async function handleRateChange(e){
       const id = e.id.split('_')[4]
       const quantity = $(`#id_bill_item_quantity_${id}`).val()
@@ -270,4 +294,6 @@ $(document).ready(function() {
   
 
 </script>
+
+
 {% endblock %}

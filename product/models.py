@@ -39,7 +39,7 @@ class Product(BaseModel):
     product_id = models.CharField(max_length=255, blank=True, null=True)
     barcode = models.CharField(null=True, max_length=100, blank=True)
     is_produced = models.BooleanField(default=True)
-    # reconcile = models.BooleanField(default=False)
+    reconcile = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.title} - Rs. {self.price} per {self.unit}"

@@ -17,7 +17,7 @@ class BillForm(BaseForm, forms.ModelForm):
         required=True,
     )
     product = forms.ModelMultipleChoiceField(
-        queryset=Product.objects.active(),
+        queryset=Product.objects.active().order_by('title'),
         widget=forms.CheckboxSelectMultiple,
         required=False,
     )
