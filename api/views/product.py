@@ -52,7 +52,7 @@ class ProductTypeListView(ListAPIView):
 
     def list(self, request, *args, **kwargs):
        
-        products = Product.objects.all()
+        products = Product.objects.active().filter(is_billing_item=True)
 
         item_type ={
             "FOOD":{

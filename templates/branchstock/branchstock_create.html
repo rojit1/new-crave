@@ -11,15 +11,6 @@
     <div class="card-body p-4 m-4">
         <div class="d-flex justify-content-between">
             <h1>{% if title %} {{title}} {% else %} Create {% endif %}</h1>
-            {% comment %}
-            <div>
-                <form method="POST" action="{% url 'branchstock_upload' %}" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <input type="file" name="file" id="" required>
-                    <input type="submit" value="Upload Opening Count" class="btn btn-sm btn-primary">
-                </form>
-            </div>
-            {% endcomment %}
         </div>
         <form id="req-form">
             {% csrf_token %}
@@ -91,7 +82,7 @@
 
     function deleteBtnClick(e){
        let id = e.target.id.split('_')
-       delete selectedItems[id]
+       selectedItems =  selectedItems.filter(item => item.product_id != id[1])
        document.getElementById(`${id[0]}_${id[1]}_tr`).remove()
        checkButtonDisplay()
     }
@@ -126,16 +117,15 @@
         let branch = $("#id_branch option:selected").text()
 
         const values = Object.fromEntries(data.entries());
-        console.log(branch)
+
         let productId = values.product
         let branchId = values.branch
         selectedItems.push({branch_id:branchId, product_id:productId, quantity:values.quantity})
         createRow(branch,product[0].text,values.quantity, productId, branchId)
-        formElement.reset()
         $("#id_product").select2({
             placeholder: "Select new Item"
         })
-        console.log(selectedItems)
+
         checkButtonDisplay()
     })
 

@@ -1,6 +1,10 @@
 from django.db import models
 from root.utils import BaseModel, SingletonModel
-
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.core.mail import send_mail
+import environ
+env = environ.Env(DEBUG=(bool, False))
 
 class StaticPage(BaseModel):
     name = models.CharField(max_length=255)
@@ -138,6 +142,19 @@ class EndDayDailyReport(BaseModel):
 
     def __str__(self):
         return 'Report'
+
+@receiver(post_save, sender=EndDayDailyReport)
+def create_profile(sender, instance, created, **kwargs):
+    if created:
+        print('****************************')
+        # sender = env('EMAIL_HOST_USER')
+        # send_mail(
+        #     'Subject here',
+        #     'Here is the message.',
+        #     sender,
+        #     ['rojeetmndr01@gmail.com'],
+        #     fail_silently=False,
+        # )
 
     
 
