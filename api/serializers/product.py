@@ -1,7 +1,7 @@
 from unicodedata import category
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
-
+from organization.models import EndDayDailyReport
 
 from product.models import CustomerProduct, Product, ProductCategory,ProductMultiprice, BranchStockTracking, ItemReconcilationApiItem
 
@@ -111,6 +111,13 @@ class ProductReconcileSerializer(serializers.Serializer):
     products = BranchStockTrackingSerializer(many=True)
 
 
+class EndDayDailyReportSerializer(ModelSerializer):
+    class Meta:
+        model = EndDayDailyReport
+        exclude = [
+            'created_at', 'updated_at', 'status', 'is_deleted', 'sorting_order', 'is_featured'
+        ]
+
 class ItemReconcilationApiItemSerializer(serializers.ModelSerializer):
     date = serializers.DateField(required=True)
     class Meta:
@@ -119,7 +126,11 @@ class ItemReconcilationApiItemSerializer(serializers.ModelSerializer):
 
 class BulkItemReconcilationApiItemSerializer(serializers.Serializer):
     items = ItemReconcilationApiItemSerializer(many=True)
-
+    terminal = serializers.CharField(max_length=20, required=True)
+    branch = serializers.IntegerField(required=True)
+    date = serializers.DateField(required=True)
+    report_total = EndDayDailyReportSerializer()
+    
     def create(self, validated_data):
         items = validated_data.get('items', [])
         for item in items:

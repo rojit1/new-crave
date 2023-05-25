@@ -1,3 +1,4 @@
+from datetime import date
 from django.forms.models import model_to_dict
 from rest_framework.response import Response
 from api.serializers.product import (
@@ -12,7 +13,7 @@ from rest_framework.views import APIView
 
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 
-from product.models import CustomerProduct, Product,ProductMultiprice, BranchStockTracking, BranchStock
+from product.models import CustomerProduct, Product,ProductMultiprice, BranchStockTracking, BranchStock, ItemReconcilationApiItem
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -102,7 +103,7 @@ class ProductList(ListAPIView):
     pagination_class = None
 
     def get_queryset(self):
-        return Product.objects.active()
+        return Product.objects.active().filter(is_billing_item=True)
     
     
 
@@ -206,14 +207,30 @@ class BranchStockTrackingView(APIView):
 
 
 
-
+from organization.models import EndDayRecord, EndDayDailyReport
 class ApiItemReconcilationView(APIView):
 
     def post(self, request):
         serializer = BulkItemReconcilationApiItemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        EndDayRecord.objects.create(branch_id = serializer.validated_data.get('branch'),
+                                     terminal=serializer.validated_data.get('terminal'),
+                                     date = serializer.validated_data.get('date')
+                                     )
+        report_total = serializer.validated_data.get("report_total")
+        new_data = {'branch_id':serializer.validated_data.get('branch'),'terminal':serializer.validated_data.get('terminal'), **report_total}
+        EndDayDailyReport.objects.create(**new_data)
         return Response({'details':'success'}, 201)
+
+
+class CheckAllowReconcilationView(APIView):
+
+    def get(self, request):
+        today_date = date.today()
+        if ItemReconcilationApiItem.objects.filter(date=today_date).exists():
+            return Response({'detail':'Items already reconciled for today!! Please Contact Admin'}, 400)
+        return Response({'details':'ok'}, 200)
 
 
 @api_view(['POST'])

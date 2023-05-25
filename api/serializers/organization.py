@@ -24,6 +24,7 @@ class OrganizationSerializer(ModelSerializer):
             "contact_person_number",
             "company_address",
             "company_bank_qr",
+            "current_fiscal_year"
         ]
 
 class TableSerializer(ModelSerializer):

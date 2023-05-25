@@ -3,6 +3,17 @@
 <div class="card p-2">
 <div class="card-body p-4 m-4">
 
+  {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+
+        <div class="alert alert-danger" role="alert">
+          {{message}}
+        </div>
+        {% endfor %}
+    </ul>
+  {% endif %}
+
   <div class="d-flex justify-content-between">
     <h1>Create</h1>
     <div> 

@@ -521,7 +521,7 @@ class BillCreate(BillMixin, CreateView):
     def form_valid(self, form):
         nepali_today = nepali_datetime.date.today()
         form.instance.organization = self.request.user.organization
-        form.instance.branch = Branch.objects.active().last()
+        form.instance.branch = Branch.objects.active().filter(is_central=True).last()
         form.instance.transaction_miti = nepali_today
         form.instance.agent = self.request.user
         form.instance.agent_name = self.request.user.full_name

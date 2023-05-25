@@ -38,8 +38,10 @@ class Product(BaseModel):
     group = models.CharField(max_length=20)
     product_id = models.CharField(max_length=255, blank=True, null=True)
     barcode = models.CharField(null=True, max_length=100, blank=True)
-    is_produced = models.BooleanField(default=True)
+    is_produced = models.BooleanField(default=False)
     reconcile = models.BooleanField(default=False)
+    is_billing_item = models.BooleanField(default=False)
+
 
     def __str__(self):
         return f"{self.title} - Rs. {self.price} per {self.unit}"
@@ -102,7 +104,7 @@ class CustomerProduct(BaseModel):
 class BranchStockTracking(BaseModel):
     branch = models.ForeignKey(Branch, on_delete=models.PROTECT)
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
-    date = models.DateField(null=True, blank=True)
+    date = models.DateField()
     opening = models.IntegerField(default=0)
     received = models.IntegerField(default=0)
     wastage = models.IntegerField(default=0)
@@ -113,7 +115,10 @@ class BranchStockTracking(BaseModel):
     discrepancy = models.IntegerField(default=0)
 
     def __str__(self):
-        return f"{self.product.title} -> {self.branch.name}"
+        return f"{self.product.title}"
+    
+    class Meta:
+        unique_together = "branch", "product", "date"
 
 
 class BranchStock(BaseModel):
@@ -135,12 +140,15 @@ class BranchStock(BaseModel):
 class ItemReconcilationApiItem(BaseModel):
     branch = models.ForeignKey(Branch, on_delete=models.PROTECT)
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
-    date = models.DateField(null=True, blank=True)
+    date = models.DateField()
     wastage = models.IntegerField(default=0)
     returned = models.IntegerField(default=0)
     physical = models.IntegerField(default=0)
 
     def __str__(self):
         return f"{self.product.title} -> {self.branch.name}"
+    
+    class Meta:
+        unique_together = 'branch', 'product', 'date'
 
 

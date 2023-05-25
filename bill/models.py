@@ -1,14 +1,12 @@
 from datetime import datetime
-import black
 from django.contrib.auth import get_user_model
 
 from django.db import models
 from django.dispatch import receiver
-from django.forms import FloatField
 from organization.models import Organization
-from product.models import Product, ProductStock
+from product.models import Product
 from root.utils import BaseModel
-from django.db.models.signals import post_save, m2m_changed
+from django.db.models.signals import post_save
 from .utils import create_journal_for_bill
 
 User = get_user_model()
@@ -164,9 +162,15 @@ class BillItem(BaseModel):
 
 """ **************************************** """
 
+class ConflictBillNumber(BaseModel):
+    invoice_number = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.invoice_number
+
 
 class Bill(BaseModel):
-    fiscal_year = models.CharField(max_length=20, null=True)
+    fiscal_year = models.CharField(max_length=20)
     agent = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     agent_name = models.CharField(max_length=255, null=True)
     terminal = models.CharField(max_length=10, default="1")
@@ -185,7 +189,7 @@ class Bill(BaseModel):
     grand_total = models.FloatField(default=0.0)
     service_charge = models.FloatField(default=0.0)
 
-    invoice_number = models.CharField(max_length=50, null=True, blank=True, unique=True)
+    invoice_number = models.CharField(max_length=50, null=True, blank=True)
     amount_in_words = models.TextField(null=True, blank=True)
     payment_mode = models.CharField(
         max_length=255, default="Cash", blank=True, null=True

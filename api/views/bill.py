@@ -7,7 +7,8 @@ from api.serializers.bill import (
     TablReturnEntrySerializer,
     TblSalesEntrySerializer,
     TblTaxEntrySerializer,
-    TblTaxEntryVoidSerializer
+    TblTaxEntryVoidSerializer,
+    BillCheckSumSerializer
 )
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
@@ -15,8 +16,9 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 
 
-from bill.models import Bill, PaymentType, TablReturnEntry, TblSalesEntry, TblTaxEntry
+from bill.models import Bill, PaymentType, TablReturnEntry, TblSalesEntry, TblTaxEntry, ConflictBillNumber
 from organization.models import Branch, Organization
+from product.models import BranchStockTracking
 from django.shortcuts import get_object_or_404
 
 
@@ -150,9 +152,43 @@ class BulkBillCreateView(APIView):
         bills = request.data.get('bills', [])
         if not bills:
             return Response({'details':"Bills is required"}, status=400)
+        conflict_invoices = []
         for bill in bills:
             serializer = BillSerializer(data=bill, context={'request':request})
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+            if serializer.is_valid():
+                serializer.save()
+            else:
+                conflict_invoices.append(bill['invoice_number'])
+                ConflictBillNumber.objects.create(invoice_number=bill['invoice_number'])
+        if conflict_invoices:
+            return Response({'details': conflict_invoices}, status=409)
 
         return Response({'details': 'Bills Created'}, status=201)
+
+
+from datetime import date
+class BillCheckSumView(APIView):
+
+    def post(self, request):
+        fiscal_year = Organization.objects.last().current_fiscal_year
+
+        bills = request.data.get('bills', [])
+        if not bills:
+            return Response({'details':"Bills is required"}, status=400)
+        new_invoice_list:list = []
+        for bill in bills:
+            invoice_num = bill.get('invoice_number', None)
+            fiscal_year = bill.get('fiscal_year', fiscal_year)
+
+            if not Bill.objects.filter(invoice_number=invoice_num, fiscal_year=fiscal_year).exists():
+                if bill.get('payment_mode').lower() == "complimentary":
+                    if Bill.objects.filter(fiscal_year=fiscal_year, transaction_date_time=bill.get('transaction_date_time')).exists():
+                        continue
+                new_invoice_list.append(invoice_num)
+                serializer = BillSerializer(data=bill, context={'request':request})
+                serializer.is_valid(raise_exception=True)
+                try:
+                    serializer.save()
+                except Exception as e:
+                    pass
+        return Response({'details': 'ok', 'created_invoices':new_invoice_list})

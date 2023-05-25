@@ -65,7 +65,7 @@ class OrganizationApi(ReadOnlyModelViewSet):
 class BranchApi(ModelViewSet):
     permission_classes = IsAuthenticatedOrReadOnly,
     serializer_class = BranchSerializer
-    queryset = Branch.objects.active()
+    queryset = Branch.objects.active().filter(is_central=False)
 
 class TableApi(ReadOnlyModelViewSet):
     serializer_class = TableSerializer

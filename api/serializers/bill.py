@@ -14,6 +14,7 @@ from bill.models import (
 from product.models import BranchStockTracking
 from organization.models import Organization
 from datetime import date
+from django.db.utils import IntegrityError
 
 class PaymentTypeSerializer(ModelSerializer):
     class Meta:
@@ -67,9 +68,6 @@ class BillSerializer(ModelSerializer):
             "is_featured",
             "organization",
         ]
-        optional_fields = [
-            "fiscal_year"
-        ]
 
     def create(self, validated_data):
         bill_items = []
@@ -77,11 +75,13 @@ class BillSerializer(ModelSerializer):
         items_void = validated_data.pop("items_void")
         split_payment = validated_data.pop("split_payment")
         payment_mode = validated_data.get('payment_mode') 
+        invoice_no = validated_data.get('invoice_number')
         if not payment_mode.lower() == "complimentary":
             bill_count_no = int(validated_data.get('invoice_number').split('-')[-1])
         else:
             bill_count_no = None
 
+        
         bill = Bill.objects.create(
             **validated_data, organization=Organization.objects.last(), bill_count_number=bill_count_no
         )
@@ -92,6 +92,7 @@ class BillSerializer(ModelSerializer):
 
         for item in items_data:
             bill_item = BillItem.objects.create(
+                product=item['product'],
                 product_quantity=item["product_quantity"],
                 rate=item["rate"],
                 product_title=item["product"].title,
@@ -200,3 +201,7 @@ class TablReturnEntrySerializer(ModelSerializer):
     class Meta:
         model = TablReturnEntry
         fields = "__all__"
+
+
+class BillCheckSumSerializer(serializers.Serializer):
+    bills = BillSerializer(many=True)
