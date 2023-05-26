@@ -43,7 +43,7 @@ class AccountProductTracking(BaseModel):
 
 
 class ProductPurchase(BaseModel):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, blank=True)
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE)
     rate = models.DecimalField(max_digits=9, decimal_places=2, null=True, blank=True)
     quantity = models.IntegerField()

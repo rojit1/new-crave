@@ -69,3 +69,10 @@ class PrinterSettingForm(BaseForm, forms.ModelForm):
         exclude = ['is_deleted', 'status', 'deleted_at', "sorting_order",  "is_featured" ]
                         
 
+from .models import MailRecipient
+
+class MailRecipientForm(BaseForm, forms.ModelForm):
+    class Meta:
+        model = MailRecipient
+        fields = '__all__'
+  

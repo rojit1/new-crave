@@ -14,6 +14,8 @@
         {%include 'components/menu_item.html' with path="terminal" url='org:terminal_list' title='Terminal' icon="bi bi-display" %}
         {%include 'components/menu_item.html' with path="table" url='org:table_list' title='Tables' icon="bi bi-table" %}
         {%include 'components/menu_item.html' with path="printersetting" url='org:printersetting_list' title='Printer Setting' icon="bi bi-printer" %}
+        {%include 'components/menu_item.html' with path="mailrecipient" url='org:mailrecipient_list' title='Mail Recipients' icon="bi bi-envelope" %}
+
 
 
 
@@ -40,6 +42,10 @@
 
         {%include 'components/menu_title.html' with title="Transaction Management"%}
         {%include 'components/menu_item.html' with path="bill" url='bill_list' title='Bills' icon=" bi bi-receipt" %}
+
+        {%include 'components/menu_title.html' with title="Daily Sales Reports"%}
+        {%include 'components/menu_item.html' with path="endday-report" url='org:endday_report_list' title='End Day Report' icon=" bi bi-receipt" %}
+
 
         {%include 'components/menu_title.html' with title="IRD"%}
         {%include 'components/menu_item.html' with path="sales" url='tblsalesentry_list' title='Sales Entry' icon=" bi bi-receipt" %}

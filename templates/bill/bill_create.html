@@ -93,7 +93,6 @@ $(document).ready(function() {
    $('#div-id_grand_total').num2words();
 }); 
 
-// $('#search-product').select2()
 
   $('#search-product').select2({
     placeholder:'Search Items',
@@ -105,7 +104,7 @@ $(document).ready(function() {
     $('#search-product').append(newOption).trigger('change');
   }
 
-  $('#search-product').on('select2:opening', function (e) {
+  $('#search-product').on('select2:select', function (e) {
     let selectedData = e.params.data;
     let id = selectedData.id
     for (let i = 0; i < checkBoxes.length; i++) {
@@ -116,8 +115,6 @@ $(document).ready(function() {
         break;
       }
     }
-
-    console
 
   });
 

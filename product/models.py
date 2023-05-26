@@ -30,6 +30,7 @@ class Product(BaseModel):
     unit = models.CharField(null=True, max_length=100, blank=True)
     
     is_taxable = models.BooleanField(default=True)
+    cost_price = models.FloatField(default=0.0)
     price = models.FloatField(default=0.0)
     image = models.ImageField(upload_to="product/images/", null=True, blank=True)
     type = models.ForeignKey(

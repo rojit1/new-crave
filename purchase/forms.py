@@ -54,6 +54,9 @@ class ProductPurchaseForm(BaseForm, forms.ModelForm):
     field_order = [ 'bill_no', 'bill_date', 'pp_no', 'vendor', 'product', 'sub_total', 'discount_percentage', 'discount_amount', 'taxable_amount',
                 'non_taxable_amount', 'tax_amount', 'grand_total', 'amount_in_words', 'payment_mode', 'debit_account']
 
+    class Meta:
+        model = ProductPurchase
+        exclude = 'created_at', 'updated_at', 'sorting_order', 'is_featured', 'status', 'is_deleted', 'purchase', 'rate', 'quantity', 'item_total'
 
 
     def __init__(self, *args, **kwargs):
@@ -68,33 +71,24 @@ class ProductPurchaseForm(BaseForm, forms.ModelForm):
         self.fields["amount_in_words"].widget.attrs["readonly"] = True
         self.fields["debit_account"] = forms.ModelChoiceField( queryset=AccountLedger.objects.filter(account_chart=AccountChart.objects.filter(group="Purchases").first()))
         self.fields["debit_account"].widget.attrs = {
-            "tags":True,
+            "tags":"true",
             "class":"form-select",
             "data-control": "select2",
             "data-placeholder": "Select Account",
         }
-        self.fields['product'] = forms.ModelChoiceField(queryset=Product.objects.filter(is_produced=False))
-        self.fields["product"].widget.attrs = {
-            "class":"form-select",
-            "data-control": "select2",
-            "data-placeholder": "Select Item",
-        }
 
-    class Meta:
-        model = ProductPurchase
-        fields = [
-            "product",
-        ]
-        # widgets = {
-        #     "product": forms.Select(
-        #         attrs={
-        #             "class": "form-select",
-        #             "data-control": "select2",
-        #             "data-placeholder": "Select Product",
-        #         }
-        #     ),
-        # }
+        self.fields['product'].widget.queryset = Product.objects.filter(is_produced=False)
+
+
+    def clean_product(self):
+        return self.cleaned_data.get('product')
     
+    def clean(self):
+        cleaned_data = super().clean()
+        if 'product' in cleaned_data:
+            cleaned_data['product'] = self.cleaned_data['product']
+        
+        return cleaned_data
 
 """  Asset Purchase  """
 

@@ -13,7 +13,7 @@ from user.permission import IsAdminMixin
 
 from .forms import OrganizationForm, StaticPageForm
 from .models import Organization, StaticPage
-
+from django.shortcuts import render
 
 class IndexView(IsAdminMixin, TemplateView):
     template_name = "index.html"
@@ -220,3 +220,34 @@ class PrinterSettingUpdate(PrinterSettingMixin, UpdateView):
 class PrinterSettingDelete(PrinterSettingMixin, DeleteMixin, View):
     pass
 
+from .models import MailRecipient, EndDayDailyReport
+from .forms import MailRecipientForm
+class MailRecipientMixin:
+    model = MailRecipient
+    form_class = MailRecipientForm
+    paginate_by = 10
+    queryset = MailRecipient.objects.filter(status=True)
+    success_url = reverse_lazy('org:mailrecipient_list')
+
+class MailRecipientList(MailRecipientMixin, ListView):
+    template_name = "mailrecipient/mailrecipient_list.html"
+    queryset = MailRecipient.objects.filter(status=True)
+
+class MailRecipientDetail(MailRecipientMixin, DetailView):
+    template_name = "mailrecipient/mailrecipient_detail.html"
+
+class MailRecipientCreate(MailRecipientMixin, CreateView):
+    template_name = "create.html"
+
+class MailRecipientUpdate(MailRecipientMixin, UpdateView):
+    template_name = "update.html"
+
+class MailRecipientDelete(MailRecipientMixin, DeleteMixin, View):
+    pass
+
+
+class EndDayReportList(View):
+
+    def get(self, request):
+        reports = EndDayDailyReport.objects.all()
+        return render(request, 'organization/end_day_report_list.html', {'object_list': reports})

@@ -1,19 +1,23 @@
 from datetime import date
+from django.forms.models import BaseModelForm
 from django.urls import reverse_lazy
 from django.db.models import Sum
+from django.db.utils import IntegrityError
+
 from django.views.generic import CreateView,DetailView,ListView,UpdateView,View
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from accounting.models import TblCrJournalEntry, TblDrJournalEntry, TblJournalEntry, AccountLedger, AccountChart, AccountSubLedger, Depreciation
 from accounting.utils import calculate_depreciation
 from root.utils import DeleteMixin
-from product.models import Product
+from product.models import Product, ProductCategory
 from organization.models import Organization
 from product.models import ProductStock
 from .forms import VendorForm, ProductPurchaseForm
 from .models import Vendor, ProductPurchase, Purchase, TblpurchaseEntry, TblpurchaseReturn
 import decimal
 from bill.views import ExportExcelMixin
+import json
 
 class VendorMixin:
     model = Vendor
@@ -94,6 +98,9 @@ class ProductPurchaseCreateView(CreateView):
             cash_ledger.save()
 
 
+    def form_invalid(self, form: BaseModelForm) -> HttpResponse:
+        return self.form_valid(form)
+
     def form_valid(self, form):
         form_data = form.data
         bill_no = form_data.get('bill_no', None)
@@ -120,6 +127,9 @@ class ProductPurchaseCreateView(CreateView):
         purchase_object.save()
 
         product_ids =  form_data.get('product_id_list', '')
+        product_taxable_info = form_data.get('product_taxable_info', '')
+        if product_taxable_info and len(product_taxable_info) > 0:
+            new_items_name = json.loads(product_taxable_info)
 
         item_name = ''
 
@@ -132,15 +142,33 @@ class ProductPurchaseCreateView(CreateView):
             product_ids = product_ids.split(',')
 
         for id in product_ids:
-            id = int(id)
-            quantity = int(form_data.get(f'id_bill_item_quantity_{id}'))
-            total_quantity += quantity
-            prod = Product.objects.get(pk=id)
-            item_name += prod.title +'-'+ str(quantity) + ', '
-            rate = float(form_data.get(f'id_bill_item_rate_{id}'))
+            try:
+                id = int(id)
+                quantity = int(form_data.get(f'id_bill_item_quantity_{id}'))
+                total_quantity += quantity
+                prod = Product.objects.get(pk=id)
+                item_name += prod.title +'-'+ str(quantity) + ', '
+                rate = float(form_data.get(f'id_bill_item_rate_{id}'))
+                item_total = quantity * rate
+                self.create_subledgers(prod, item_total, debit_account)
+                ProductPurchase.objects.create(product_id=id, purchase=purchase_object, quantity=quantity, rate=rate, item_total=item_total)
+            except ValueError:
+                pass
+
+        for k, v in new_items_name.items():
+            other_cat = ProductCategory.objects.get(title__iexact="others").pk
+            product_title = k
+            rate = float(form_data.get(f'id_bill_item_rate_{k}'))
+            quantity = int(form_data.get(f'id_bill_item_quantity_{k}'))
             item_total = quantity * rate
+            is_taxable = True if v == "true" or v == True else False
+            try:
+                prod = Product.objects.create(title=product_title, is_taxable=is_taxable, group='others', type_id=other_cat, cost_price=rate)
+            except IntegrityError:
+                prod = Product.objects.get(title=k)
+                
             self.create_subledgers(prod, item_total, debit_account)
-            ProductPurchase.objects.create(product_id=id, purchase=purchase_object, quantity=quantity, rate=rate, item_total=item_total)
+            ProductPurchase.objects.create(product=prod, purchase=purchase_object, quantity=quantity, rate=rate, item_total=item_total)
 
         TblpurchaseEntry.objects.create(
             bill_no=bill_no, bill_date=bill_date, pp_no=pp_no, vendor_name=vendor_name, vendor_pan=vendor_pan,
@@ -149,7 +177,7 @@ class ProductPurchaseCreateView(CreateView):
         vendor_detail = str(vendor.pk)+' '+ vendor_name
         self.create_accounting(debit_account_id=debit_account, payment_mode=payment_mode, username=self.request.user.username, sub_total=sub_total, tax_amount=tax_amount, vendor=vendor_detail)
 
-        return redirect('/purchase/create/' )
+        return redirect('/purchase/' )
     
 
 

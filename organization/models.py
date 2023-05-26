@@ -2,7 +2,6 @@ from django.db import models
 from root.utils import BaseModel, SingletonModel
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.core.mail import send_mail
 import environ
 env = environ.Env(DEBUG=(bool, False))
 
@@ -65,7 +64,7 @@ class Branch(BaseModel):
     branch_code = models.CharField(
         max_length=255, null=False, blank=False, unique=True, default=get_default_uuid
     )
-    is_central = models.BooleanField(default=False, verbose_name='For Centeral Billing (Web)')
+    is_central = models.BooleanField(default=False, verbose_name='For Central Billing (Web)')
 
     def __str__(self):
         return f"{self.organization.org_name} - {self.name}"
@@ -118,7 +117,26 @@ class EndDayRecord(BaseModel):
 
     def __str__(self):
         return self.branch.name
-    
+
+
+
+class MailRecipient(models.Model):
+    name = models.CharField(max_length=100)
+    email = models.EmailField(max_length=100)
+    status = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+
+class MailSendRecord(models.Model):
+    mail_recipient = models.ForeignKey(MailRecipient, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.mail_recipient.name
+
+
 class EndDayDailyReport(BaseModel):
     employee_name = models.CharField(max_length=50)
     net_sales = models.FloatField()
@@ -139,23 +157,49 @@ class EndDayDailyReport(BaseModel):
     no_of_guest = models.IntegerField()
     branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True)
     terminal = models.CharField(max_length=10, null=True)
+    total_sale = models.FloatField(default=0)
 
     def __str__(self):
         return 'Report'
+    
+    def save(self, *args, **kwargs):
+        self.total_sale = self.net_sales + self.vat
+        return super().save()
+    
+
+from .utils import send_mail_to_receipients
+from threading import Thread
 
 @receiver(post_save, sender=EndDayDailyReport)
 def create_profile(sender, instance, created, **kwargs):
     if created:
-        print('****************************')
-        # sender = env('EMAIL_HOST_USER')
-        # send_mail(
-        #     'Subject here',
-        #     'Here is the message.',
-        #     sender,
-        #     ['rojeetmndr01@gmail.com'],
-        #     fail_silently=False,
-        # )
-
-    
-
-
+        sender = env('EMAIL_HOST_USER')
+        mail_list = []
+        recipients = MailRecipient.objects.filter(status=True)
+        for r in recipients:
+            mail_list.append(r.email)
+            MailSendRecord.objects.create(mail_recipient=r)
+        if mail_list:
+            report_data = {
+                'total_sale': instance.total_sale,
+                'date_time':instance.date_time,
+                'employee_name': instance.employee_name,
+                'net_sales': instance.net_sales,
+                'vat': instance.vat,  
+                'total_discounts': instance.total_discounts,
+                'cash': instance.cash,
+                'credit': instance.credit,
+                'credit_card': instance.credit_card,
+                'mobile_payment': instance.mobile_payment,
+                'complimentary': instance.complimentary,
+                'start_bill': instance.start_bill,
+                'end_bill': instance.end_bill,
+                'total_void_count': instance.total_void_count,
+                'food_sale': instance.food_sale,
+                'beverage_sale': instance.beverage_sale,
+                'others_sale': instance.others_sale,
+                'no_of_guest': instance.no_of_guest,
+                'branch': instance.branch.name,
+                'terminal': instance.terminal,
+            }
+            Thread(target=send_mail_to_receipients, args=(report_data, mail_list, sender)).start()
