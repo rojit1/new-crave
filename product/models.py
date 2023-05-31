@@ -145,11 +145,12 @@ class ItemReconcilationApiItem(BaseModel):
     wastage = models.IntegerField(default=0)
     returned = models.IntegerField(default=0)
     physical = models.IntegerField(default=0)
+    terminal = models.CharField(max_length=10, null=True, blank=True)
 
     def __str__(self):
         return f"{self.product.title} -> {self.branch.name}"
     
     class Meta:
-        unique_together = 'branch', 'product', 'date'
+        unique_together = 'branch', 'product', 'date', 'terminal'
 
 

@@ -216,7 +216,7 @@ class Bill(BaseModel):
 def create_invoice_number(sender, instance, created, **kwargs):
     current_fiscal_year = Organization.objects.last().current_fiscal_year
 
-    if created and not instance.payment_mode.lower() == "complimentary":
+    if created and not instance.payment_mode.lower().strip() == "complimentary":
         try:
             create_journal_for_bill(instance)
         except Exception as e:
