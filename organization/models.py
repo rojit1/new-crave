@@ -5,6 +5,7 @@ from django.dispatch import receiver
 import environ
 env = environ.Env(DEBUG=(bool, False))
 
+
 class StaticPage(BaseModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True)
@@ -79,6 +80,11 @@ class Terminal(BaseModel):
         return f'Terminal {self.terminal_no} of branch {self.branch.name}'
     
 
+@receiver(post_save, sender=Terminal)
+def create_profile(sender, instance, created, **kwargs):
+    if created:
+        pass
+        # create_terminal_sub_ledgers(branch_code=instance.branch.branch_code, terminal_no=instance.terminal_no)
 
 class PrinterSetting(BaseModel):
 
@@ -169,6 +175,7 @@ class EndDayDailyReport(BaseModel):
 
 from .utils import send_mail_to_receipients
 from threading import Thread
+from datetime import datetime
 
 @receiver(post_save, sender=EndDayDailyReport)
 def create_profile(sender, instance, created, **kwargs):
@@ -180,7 +187,14 @@ def create_profile(sender, instance, created, **kwargs):
             mail_list.append(r.email)
             MailSendRecord.objects.create(mail_recipient=r)
         if mail_list:
+            dt_now = datetime.now()
+            date_now = dt_now.date()
+            time_now = dt_now.time().strftime('%I:%M %p')
+            org = Organization.objects.first().org_name
             report_data = {
+                'org_name':org,
+                'date_now': date_now,
+                'time_now': time_now,
                 'total_sale': instance.total_sale,
                 'date_time':instance.date_time,
                 'employee_name': instance.employee_name,

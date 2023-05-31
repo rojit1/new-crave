@@ -1,5 +1,17 @@
-from accounting.models import AccountLedger, TblCrJournalEntry, TblJournalEntry, TblDrJournalEntry, AccountChart
+from accounting.models import AccountLedger, TblCrJournalEntry, TblJournalEntry, TblDrJournalEntry, AccountChart, AccountSubLedger
 from decimal import Decimal
+
+
+def update_terminal_sub_ledger(terminal, branch, total, ledger):
+    
+    subled_name = f'{ledger.ledger_name} {branch}-{terminal}'
+    try:
+        sub = AccountSubLedger.objects.get(sub_ledger_name=subled_name)
+        sub.total_value += Decimal(total)
+        sub.save()
+
+    except AccountSubLedger.DoesNotExist:
+        AccountSubLedger.objects.create(sub_ledger_name=subled_name, total_value=total, is_editable=False, ledger=ledger)
 
 def create_journal_for_bill(instance):
     payment_mode = instance.payment_mode.lower()
@@ -28,6 +40,7 @@ def create_journal_for_bill(instance):
         
     elif payment_mode == "credit card":
         card_transaction_ledger = AccountLedger.objects.get(ledger_name='Card Transactions')
+        update_terminal_sub_ledger(terminal=instance.terminal, branch=instance.branch.branch_code, total=grand_total, ledger=card_transaction_ledger)
 
         journal_entry = TblJournalEntry.objects.create(employee_name='Created Automatically during Sale', journal_total=grand_total)
         TblDrJournalEntry.objects.create(journal_entry=journal_entry, particulars=f"Card Transaction A/C Dr", ledger=card_transaction_ledger, debit_amount=grand_total)
@@ -41,6 +54,7 @@ def create_journal_for_bill(instance):
 
     elif payment_mode == "mobile payment":
         mobile_payment = AccountLedger.objects.get(ledger_name='Mobile Payments')
+        update_terminal_sub_ledger(terminal=instance.terminal, branch=instance.branch.branch_code, total=grand_total, ledger=mobile_payment)
 
         journal_entry = TblJournalEntry.objects.create(employee_name='Created Automatically during Sale', journal_total=grand_total)
         TblDrJournalEntry.objects.create(journal_entry=journal_entry, particulars=f"Mobile Payment A/C Dr", ledger=mobile_payment, debit_amount=grand_total)
@@ -55,6 +69,7 @@ def create_journal_for_bill(instance):
     else:
         
         cash_ledger = AccountLedger.objects.get(ledger_name='Cash-In-Hand')
+        update_terminal_sub_ledger(terminal=instance.terminal, branch=instance.branch.branch_code, total=grand_total, ledger=cash_ledger)
         cash_ledger.total_value = cash_ledger.total_value + grand_total
         cash_ledger.save()
 
@@ -72,7 +87,20 @@ def create_journal_for_bill(instance):
             TblCrJournalEntry.objects.create(journal_entry=journal_entry, particulars=f"To VAT Payable", ledger=vat_payable, credit_amount=tax_amount)
 
 
+def update_terminal_amount(terminal, branch, total):
+    subled_name = f'Sales {branch}-{terminal}'
+    sale_ledger = AccountLedger.objects.get(ledger_name='Sales')
+    try:
+        sub = AccountSubLedger.objects.get(sub_ledger_name=subled_name)
+        sub.total_value += Decimal(total)
+        sub.save()
 
+    except AccountSubLedger.DoesNotExist:
+        AccountSubLedger.objects.create(sub_ledger_name=subled_name, total_value=total, is_editable=False, ledger=sale_ledger)
 
     
+class MyClass:
 
+    def __init__(self):
+        """
+        """

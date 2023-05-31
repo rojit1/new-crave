@@ -1,3 +1,4 @@
+from typing import Any
 from django.urls import reverse_lazy
 from django.views.generic import (
     CreateView,
@@ -13,7 +14,7 @@ from user.permission import IsAdminMixin
 
 from .forms import OrganizationForm, StaticPageForm
 from .models import Organization, StaticPage
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 
 class IndexView(IsAdminMixin, TemplateView):
     template_name = "index.html"
@@ -93,7 +94,7 @@ class StaticPageDelete(StaticPageMixin, DeleteMixin, View):
 
 
 from django.db import transaction
-from django.http import JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.urls import reverse_lazy
 from django.views.generic import (
     CreateView,
@@ -144,6 +145,8 @@ class BranchDelete(BranchMixin, DeleteMixin, View):
 
 from .models import Terminal
 from .forms import TerminalForm
+from accounting.models import AccountLedger, AccountSubLedger
+
 class TerminalMixin:
     model = Terminal
     form_class = TerminalForm
@@ -161,6 +164,22 @@ class TerminalDetail(TerminalMixin, DetailView):
 
 class TerminalCreate(TerminalMixin, CreateView):
     template_name = "create.html"
+
+    def post(self, request: HttpRequest, *args: str, **kwargs: Any) -> HttpResponse:
+        cash_in_hand = AccountLedger.objects.get(ledger_name__iexact="cash-in-hand")
+        card_transactions = AccountLedger.objects.get(ledger_name__iexact="card transactions")
+        mobile_palyemnts = AccountLedger.objects.get(ledger_name__iexact="mobile payments")
+        sales = AccountLedger.objects.get(ledger_name__iexact="sales")
+
+        branch_code = get_object_or_404(Branch, pk=int(request.POST.get('branch'))).branch_code
+        terminal_no = request.POST.get('terminal_no')
+
+        ledgers = [cash_in_hand, card_transactions, mobile_palyemnts, sales]
+
+        for led in ledgers:
+            AccountSubLedger.objects.create(sub_ledger_name=f'{led.ledger_name} {branch_code}-{terminal_no}', ledger=led, is_editable=False)
+
+        return super().post(request, *args, **kwargs)
 
 class TerminalUpdate(TerminalMixin, UpdateView):
     template_name = "update.html"

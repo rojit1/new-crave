@@ -527,6 +527,10 @@ class TrialBalanceView(View):
             "from_date":from_date,
             "to_date":to_date
         }
+        print(trial_balance)
+
+
+
 
         return render(request, 'accounting/trial_balance.html', context)
 

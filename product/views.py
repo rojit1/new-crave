@@ -310,7 +310,7 @@ class ReconcileView(View):
                 for k, v in product.items():
                     if k =='id':
                         physical_count = 0
-                        if opening_exists > 0:
+                        if BranchStockTracking.objects.filter(branch=filter_branch, product_id=v).exists():
                             physical_count = BranchStockTracking.objects.filter(branch=filter_branch, product_id=v).last().physical
                         new_products[str(v)] = {'title':product.get('title'), 'opening': physical_count}
                         break
@@ -393,7 +393,7 @@ class ReconcileView(View):
             messages.error(request, f"Date must not be greater than {today_date}")
             return render(request, 'item_reconcilation/reconcilation.html', {'branches':branches})
         
-        if BranchStockTracking.objects.filter(date__gte=reconcile_date).exists():
+        if BranchStockTracking.objects.filter(date__gte=reconcile_date, branch=branch).exists():
             messages.error(request, f"Items from date greater than {reconcile_date} exists")
             return render(request, 'item_reconcilation/reconcilation.html', {'branches':branches})
 

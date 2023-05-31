@@ -15,3 +15,5 @@ def send_mail_to_receipients(data, mail_list, sender):
         )
     except Exception:
         pass
+
+
