@@ -122,7 +122,7 @@ class ItemReconcilationApiItemSerializer(serializers.ModelSerializer):
     date = serializers.DateField(required=True)
     class Meta:
         model = ItemReconcilationApiItem
-        fields = 'branch', 'product', 'date', 'wastage', 'returned', 'physical', 'terminal'
+        fields = 'branch', 'product', 'date', 'wastage', 'returned', 'physical',
 
 class BulkItemReconcilationApiItemSerializer(serializers.Serializer):
     items = ItemReconcilationApiItemSerializer(many=True)

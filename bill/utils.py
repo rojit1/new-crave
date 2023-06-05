@@ -32,6 +32,8 @@ def create_journal_for_bill(instance):
         journal_entry = TblJournalEntry.objects.create(employee_name='Created Automatically during Sale', journal_total=grand_total)
         TblDrJournalEntry.objects.create(journal_entry=journal_entry, particulars=f"{instance.customer.name} A/C Dr", ledger=dr_ledger, debit_amount=grand_total)
         TblCrJournalEntry.objects.create(journal_entry=journal_entry, particulars=f"To Sales", ledger=sale_ledger, credit_amount=(grand_total-tax_amount))
+        sale_ledger.total_value += (grand_total-tax_amount)
+        sale_ledger.save()
         if tax_amount > 0:
             vat_payable = AccountLedger.objects.get(ledger_name='VAT Payable')
             vat_payable.total_value = vat_payable.total_value + tax_amount

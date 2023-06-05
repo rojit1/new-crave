@@ -224,7 +224,7 @@ class JournalEntryView(View):
         to_date = request.GET.get('toDate', None)
 
         if from_date and to_date and (to_date > from_date):
-            journals = TblJournalEntry.objects.filter(created_at__range=[from_date, to_date])
+            journals = TblJournalEntry.objects.filter(created_at__range=[from_date, to_date]).order_by('-created_at')
 
             journal_entries = {
                 'entries': [],
@@ -272,7 +272,7 @@ class JournalEntryView(View):
             return render(request, 'accounting/journal/journal_voucher.html', context)
             
 
-        journal_entries = TblJournalEntry.objects.prefetch_related('tbldrjournalentry_set').all()
+        journal_entries = TblJournalEntry.objects.prefetch_related('tbldrjournalentry_set').all().order_by('-created_at')
         return render(request, 'accounting/journal/journal_list.html',  {'journal_entries': journal_entries})
 
 
@@ -539,6 +539,7 @@ class ProfitAndLoss(TemplateView):
     template_name = "accounting/profit_and_loss.html"
 
     def get_context_data(self, **kwargs):
+        org = Organization.objects.first()
         from_date = self.request.GET.get('fromDate', None)
         to_date = self.request.GET.get('toDate', None)
         context = super().get_context_data(**kwargs)
@@ -566,7 +567,7 @@ class ProfitAndLoss(TemplateView):
         context['expense_total'] = expense_total
         context['revenues'] = revenue_list
         context['revenue_total'] = revenue_total
-
+        context['org'] = org
         return context
     
 
@@ -575,6 +576,7 @@ class BalanceSheet(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        org= Organization.objects.first()
 
         asset_dict = {}
         liability_dict = {}
@@ -611,6 +613,8 @@ class BalanceSheet(TemplateView):
 
         context['assets'] = asset_dict
         context['liabilities'] =  liability_dict
+        context['org'] =  org
+
 
         return context
 

@@ -128,6 +128,7 @@ class ProductPurchaseCreateView(CreateView):
 
         product_ids =  form_data.get('product_id_list', '')
         product_taxable_info = form_data.get('product_taxable_info', '')
+        new_items_name = {}
         if product_taxable_info and len(product_taxable_info) > 0:
             new_items_name = json.loads(product_taxable_info)
 
@@ -155,20 +156,21 @@ class ProductPurchaseCreateView(CreateView):
             except ValueError:
                 pass
 
-        for k, v in new_items_name.items():
-            other_cat = ProductCategory.objects.get(title__iexact="others").pk
-            product_title = k
-            rate = float(form_data.get(f'id_bill_item_rate_{k}'))
-            quantity = int(form_data.get(f'id_bill_item_quantity_{k}'))
-            item_total = quantity * rate
-            is_taxable = True if v == "true" or v == True else False
-            try:
-                prod = Product.objects.create(title=product_title, is_taxable=is_taxable, group='others', type_id=other_cat, cost_price=rate)
-            except IntegrityError:
-                prod = Product.objects.get(title=k)
-                
-            self.create_subledgers(prod, item_total, debit_account)
-            ProductPurchase.objects.create(product=prod, purchase=purchase_object, quantity=quantity, rate=rate, item_total=item_total)
+        if new_items_name:
+            for k, v in new_items_name.items():
+                other_cat = ProductCategory.objects.get(title__iexact="others").pk
+                product_title = k
+                rate = float(form_data.get(f'id_bill_item_rate_{k}'))
+                quantity = int(form_data.get(f'id_bill_item_quantity_{k}'))
+                item_total = quantity * rate
+                is_taxable = True if v == "true" or v == True else False
+                try:
+                    prod = Product.objects.create(title=product_title, is_taxable=is_taxable, group='others', type_id=other_cat, cost_price=rate)
+                except IntegrityError:
+                    prod = Product.objects.get(title=k)
+                    
+                self.create_subledgers(prod, item_total, debit_account)
+                ProductPurchase.objects.create(product=prod, purchase=purchase_object, quantity=quantity, rate=rate, item_total=item_total)
 
         TblpurchaseEntry.objects.create(
             bill_no=bill_no, bill_date=bill_date, pp_no=pp_no, vendor_name=vendor_name, vendor_pan=vendor_pan,

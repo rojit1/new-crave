@@ -28,7 +28,7 @@
                   <!--begin::Logo-->
                   <a href="{% url 'org:index' %}">
 
-                     <img alt="Logo" src="{% static 'media/logo/logo.jpg'%}" class="h-55px logo" />
+                     <img alt="Logo" src="{{org_global.org_logo.ur}}" class="h-55px logo" />
                   </a>
                   <!--end::Logo-->
                   <!--begin::Aside toggler-->
@@ -73,6 +73,7 @@
                      <div class="d-flex align-items-stretch justify-content-between flex-lg-grow-1">
                         <!--begin::Navbar-->
                            {%include 'components/top_bar.html'%}
+
                         <!--end::Navbar-->
                         <!--begin::Topbar-->
                         <div class="d-flex align-items-stretch flex-shrink-0">

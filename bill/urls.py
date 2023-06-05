@@ -128,6 +128,7 @@ from .views import (
     TablReturnEntryCreate,
     TablReturnEntryUpdate,
     TablReturnEntryDelete,
+    TodaysTransactionView
 )
 
 urlpatterns += [
@@ -153,5 +154,10 @@ urlpatterns += [
         "tablreturnentry/delete",
         TablReturnEntryDelete.as_view(),
         name="tablreturnentry_delete",
+    ),
+    path(
+        "todays-transaction/",
+        TodaysTransactionView.as_view(),
+        name="todays_transaction",
     ),
 ]

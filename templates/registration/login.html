@@ -27,7 +27,7 @@
 <!--begin::Body-->
 
 <body id="kt_body" class="bg-body">
-	<!--begin::Main-->
+	<!--begin::Main--> 
 	<!--begin::Root-->
 	<div class="d-flex flex-column flex-root">
 		<!--begin::Authentication - Sign-in -->
@@ -37,7 +37,7 @@
 			<div class="d-flex flex-center flex-column flex-column-fluid p-10 pb-lg-20">
 				<!--begin::Logo-->
 				<a href="{% url 'org:index' %}" class="mb-12">
-				 <img alt="Logo" src="{% static 'media/logo/logo.jpg'%}" class="h-40px" />
+				 <img alt="Logo" src="{{org_global.org_logo.url}}" class="h-200px" />
 				</a>
 				<!--end::Logo-->
 				<!--begin::Wrapper-->

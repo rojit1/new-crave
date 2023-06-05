@@ -481,11 +481,19 @@ class UpdateDateForReconcilationView(View):
     def post(self, request):
         from_date = request.POST.get('from_date', None)
         to_date = request.POST.get('to_date', None)
-
+        branch = request.POST.get('branch', None)
         if not from_date or not to_date:
             messages.error(request, 'Please Provide both "From date" and "To date"')
             return redirect('/reconcile')
-        ItemReconcilationApiItem.objects.filter(date=from_date).update(date=to_date)
-        EndDayRecord.objects.filter(date=from_date).update(date=to_date)
+        
+        api_item_exists = ItemReconcilationApiItem.objects.filter(date=to_date,branch=branch).exists()
+        endday_exists = EndDayRecord.objects.filter(date=to_date, branch=branch).exists()
+
+        if api_item_exists or endday_exists:
+            messages.error(request, 'Records in api item or end day record already exists')
+            return redirect('/reconcile')
+        branch = get_object_or_404(Branch, pk=branch)
+        ItemReconcilationApiItem.objects.filter(date=from_date,branch=branch).update(date=to_date)
+        EndDayRecord.objects.filter(date=from_date, branch=branch).update(date=to_date)
         messages.success(request, 'Date has been updated')
         return redirect('/reconcile')

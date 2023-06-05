@@ -529,6 +529,9 @@ class BillCreate(BillMixin, CreateView):
         form.instance.agent = self.request.user
         form.instance.agent_name = self.request.user.full_name
         form.instance.terminal = 1
+        form.instance.tax_amount = float(self.request.POST.get('tax_amount'))
+        
+
         if form.instance.payment_mode.lower() == 'credit':
             if not form.instance.customer:
                 return self.form_invalid(form)
@@ -550,7 +553,6 @@ class BillCreate(BillMixin, CreateView):
             product = Product.objects.get(id=id)
             rate = req.get(f"id_bill_item_rate_{id}")
             product_quantity = req.get(f"id_bill_item_quantity_{id}")
-            is_taxable = req.get("is_taxable")
             amount = float(rate) * float(product_quantity)
             sub_total += amount
             bill_item = BillItem.objects.create(
@@ -564,17 +566,19 @@ class BillCreate(BillMixin, CreateView):
             )
             self.object.bill_items.add(bill_item)
         self.object.sub_total = round(sub_total, 2)
-        if products:
-            if is_taxable:
-                self.object.taxable_amount = round(sub_total - float(discount), 2)
-                self.object.tax_amount = round(0.13 * self.object.taxable_amount, 2)
-                self.object.grand_total = round(
-                    self.object.taxable_amount + self.object.tax_amount, 2
-                )
-            else:
-                self.object.grand_total = self.object.sub_total
-                self.object.taxable_amount = 0
-                self.object.tax_amount = 0
+        is_taxable = self.object.tax_amount
+
+        # if products:
+        #     if is_taxable:
+        #         self.object.taxable_amount = round(sub_total - float(discount), 2)
+        #         self.object.tax_amount = round(0.13 * self.object.taxable_amount, 2)
+        #         self.object.grand_total = round(
+        #             self.object.taxable_amount + self.object.tax_amount, 2
+        #         )
+        #     else:
+        #         self.object.grand_total = self.object.sub_total
+        #         self.object.taxable_amount = 0
+        #         self.object.tax_amount = 0
 
 
 class BillUpdate(BillMixin, UpdateView):
@@ -1585,3 +1589,49 @@ class PaymentModeSummary(BillFilterDateMixin, ExportExcelMixin, ListView):
 
         wb.save(response)
         return response
+
+
+class TodaysTransactionView(View):
+
+    def get(self, request):
+        today = date.today()
+        bills = Bill.objects.filter(transaction_date=today)
+        last_update = Bill.objects.order_by('-created_at').first().created_at if Bill.objects.order_by('-created_at') else None
+        
+        terminals = {}
+        for bill in bills:
+            if bill.invoice_number:
+                bill_no_lst = bill.invoice_number.split('-')[:2]
+                terminal_no = f"{bill_no_lst[0]}-{bill_no_lst[1]}"
+                if terminal_no not in terminals:
+                    terminals[terminal_no] = {"total_sale":0, "vat":0,
+                                            "net_sale":0, "discount":0,
+                                            "cash":0,"food":0, "beverage":0, "others":0,"credit_card":0, "mobile_payment":0 }
+                
+                terminals[terminal_no]['total_sale'] += bill.grand_total
+                terminals[terminal_no]['vat'] += bill.tax_amount
+                terminals[terminal_no]['discount'] += bill.discount_amount
+                terminals[terminal_no]['net_sale'] += (bill.grand_total-bill.tax_amount)
+
+                if bill.payment_mode.lower().strip() == "cash":
+                    terminals[terminal_no]['cash'] += bill.grand_total
+                elif bill.payment_mode.lower().strip() == "credit card":
+                    terminals[terminal_no]['credit_card'] += bill.grand_total
+                elif bill.payment_mode.lower().strip() == "mobile payment":
+                    terminals[terminal_no]['mobile_payment'] += bill.grand_total
+                
+                for item in bill.bill_items.all():
+                    if item.product.type.title.lower().strip() == "food":
+                        terminals[terminal_no]['food'] += item.amount
+                    elif item.product.type.title.lower().strip() == "beverage":
+                        terminals[terminal_no]['beverage'] += item.amount
+                    elif item.product.type.title.lower().strip() == "others":
+                        terminals[terminal_no]['others'] += item.amount
+                
+
+        terminals_to_template = []
+        for k,v in terminals.items():
+            v['terminal'] = k
+            terminals_to_template.append(v)
+
+        return render(request, 'todays_transaction/todays_transaction.html', {'terminals':terminals_to_template, 'last_update':last_update})
