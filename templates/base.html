@@ -28,7 +28,7 @@
                   <!--begin::Logo-->
                   <a href="{% url 'org:index' %}">
 
-                     <img alt="Logo" src="{{org_global.org_logo.ur}}" class="h-55px logo" />
+                     <img alt="Logo" src="{{org_global.org_logo.url}}" class="h-55px logo" />
                   </a>
                   <!--end::Logo-->
                   <!--begin::Aside toggler-->
@@ -65,7 +65,7 @@
                      <!--begin::Mobile logo-->
                      <div class="d-flex align-items-center flex-grow-1 flex-lg-grow-0">
                         <a href="{% url 'org:index' %}" class="d-lg-none">
-                           <img alt="Logo" src="{% static 'media/logo/logo.jpg'%}" class="h-25px" />
+                           <img alt="Logo" src="{{org_global.org_logo.url}}" class="h-25px" />
                         </a>
                      </div>
                      <!--end::Mobile logo-->

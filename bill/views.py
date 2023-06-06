@@ -95,14 +95,13 @@ class BillFilterDateMixin(DateMixin):
         query = self.request.GET.get("q", None)
         from_date, to_date = self.get_date_data()
         if from_date and to_date:
-            qs = qs.filter(transaction_date__range=(from_date, to_date))
+            qs = qs.filter(transaction_date__range=[from_date, to_date])
         else:
             today_date = datetime.today().strftime("%Y-%m-%d")
-            qs = qs.filter(transaction_date__range=(today_date, today_date))
+            qs = qs.filter(transaction_date__range=[today_date, today_date])
 
         if branch_code:
             qs = qs.filter(branch__branch_code=branch_code)
-
         if query:
             q_lookup = Q()
             for field in self.search_lookup_fields:
@@ -235,7 +234,8 @@ class BillMixin(IsAdminMixin):
     ]
 
     def get_queryset(self, *args, **kwargs):
-        qc = super().get_queryset(*args, **kwargs)
+        qc = Bill.objects.filter(is_deleted=False)
+        # qc = super().get_queryset(*args, **kwargs)
         # qc = self.search(qc)
         # qc = self.date_filter(qc)
         # qc = self.terminalSearch(qc)
@@ -424,7 +424,7 @@ class SalesInvoiceSummaryRegister(
     BillFilterDateMixin, BillMixin, ExportExcelMixin, ListView
 ):
     template_name = "bill/sales_invoice_summary.html"
-    queryset = Bill.objects.filter(is_deleted=False, status=True)
+    # queryset = Bill.objects.filter(is_deleted=False, status=True)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1338,6 +1338,7 @@ class PartyWiseSalesInvoiceRegister(
         tax_amount=Sum("tax_amount"),
     )
 
+
     def get_filtered_date(self, qs):
         from_date, to_date = self.get_date_data()
         if from_date and to_date:
@@ -1357,7 +1358,11 @@ class PartyWiseSalesInvoiceRegister(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        qs = TblSalesEntry.objects.values_list("customer_name", "customer_pan")
+        branch_code = self.request.GET.get("branch_code", None)
+        if branch_code:
+            qs = TblSalesEntry.objects.filter(bill_no__contains=branch_code).values_list("customer_name", "customer_pan")
+        else:
+            qs = TblSalesEntry.objects.values_list("customer_name", "customer_pan")
         qs = self.get_filtered_date(qs)
         total = qs.aggregate(
             amount=Sum("amount"),
@@ -1425,9 +1430,13 @@ class SalesInvoiceAnalysis(BillFilterDateMixin, ExportExcelMixin, ListView):
     def get_sales_data(self):
         item = []
         from_date, to_date = self.get_date_data()
+        branch_code = self.request.GET.get('branch_code')
         today_date = datetime.today().strftime("%Y-%m-%d")
         for i in self.get_queryset():
-            qs = BillItem.objects.filter(bill__customer_id=i["customer__id"])
+            if branch_code:
+                qs = BillItem.objects.filter(bill__customer_id=i["customer__id"], bill__invoice_number__contains=branch_code)
+            else:
+                qs = BillItem.objects.filter(bill__customer_id=i["customer__id"])
             if from_date and to_date:
                 qs = qs.filter(bill__transaction_date__range=(from_date, to_date))
             else:
@@ -1440,6 +1449,8 @@ class SalesInvoiceAnalysis(BillFilterDateMixin, ExportExcelMixin, ListView):
                 rate_new=Avg("rate"),
                 net_amount=Sum(F("product_quantity") * F("rate")),
             )
+            if branch_code:
+                pass
             item.append(
                 {
                     "bills": bills,

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from django.forms.models import BaseModelForm
 from django.urls import reverse_lazy
 from django.db.models import Sum
@@ -18,6 +18,7 @@ from .models import Vendor, ProductPurchase, Purchase, TblpurchaseEntry, Tblpurc
 import decimal
 from bill.views import ExportExcelMixin
 import json
+import pandas as pd
 
 class VendorMixin:
     model = Vendor
@@ -118,6 +119,7 @@ class ProductPurchaseCreateView(CreateView):
         payment_mode = form_data.get('payment_mode')
         debit_account = form_data.get('debit_account')
         purchase_object = Purchase(
+            bill_no=bill_no,
             vendor_id=vendor_id,sub_total=sub_total, bill_date=bill_date,
             discount_percentage=discount_percentage,discount_amount=discount_amount,
             taxable_amount=taxable_amount, non_taxable_amount=non_taxable_amount,
@@ -266,7 +268,6 @@ class PurchaseBookListView(ExportExcelMixin,View):
                 ws.write(row_num, col_num, row[col_num], font_style_normal)
 
         purchase_entry_sum = data.get('purchase_entry_sum')
-        print(purchase_entry_sum)
 
         row_num += 1
         ws.write(row_num, 0, "Total", font_style_normal)
@@ -344,6 +345,69 @@ class PurchaseBookListView(ExportExcelMixin,View):
 
 
         return render(request, 'purchase/purchase_book.html', context)
+
+
+class VendorWisePurchaseView(ExportExcelMixin, View):
+
+    def export_to_excel(self, data):
+        response = HttpResponse(content_type="application/ms-excel")
+        response["Content-Disposition"] = 'attachment; filename="vendor_wise_purchase.xls"'
+        columns = ['vendor', 'bill_date', "bill_no", "item", "group", "rate", "quantity", "unit", "tax_amount", "total_amount"]
+        wb, ws, row_num, font_style_normal, font_style_bold = self.init_xls(
+            "Vendor wise Purchase", columns=columns
+        )
+
+        new_data = []
+        for d in data:
+            new_data.append([d['name']])
+
+            for purchase in d['purchases']:
+                for item in purchase.productpurchase_set.all():
+                    items_array = ['',purchase.bill_date.strftime('%Y-%m-%d'), purchase.bill_no]
+                    items_array.append(item.product.title)
+                    items_array.append(item.product.group)
+                    items_array.append(item.rate)
+                    items_array.append(item.quantity)
+                    items_array.append(item.product.unit)
+                    items_array.append(purchase.tax_amount)
+                    items_array.append(purchase.grand_total)
+                    new_data.append(items_array)
+        for row in new_data:
+            row_num += 1
+            for col_num in range(len(row)):
+                ws.write(row_num, col_num, row[col_num], font_style_normal)
+        wb.save(response)
+        return response
+        
+        
+
+    def get(self, request):
+        from_date = request.GET.get('fromDate')
+        to_date = request.GET.get('toDate')
+        format = request.GET.get('format')
+
+        vendors = { v[0]:{'id':v[1], 'name':v[0], 'purchases':[]} for v in Vendor.objects.values_list('name', 'id')}
+        if from_date and to_date:
+            purchases = Purchase.objects.filter(bill_date__range=[from_date, to_date])
+        else:
+            purchases = Purchase.objects.all()
+        print('PURCHASES')
+        print(purchases)
+        for purchase in purchases:
+            if purchase.vendor:
+                vendor = vendors.get(purchase.vendor.name)
+                vendor['purchases'].append(purchase)
+            
+        data = [i for i in vendors.values()]
+        if format and format.lower().strip() == 'xls':
+            return self.export_to_excel(data)
+        
+
+        return render(request, 'purchase/vendorwisepurchase.html', {'object_list':data})
+
+
+
+
 
 
 """  ***************   Asset Purchase  ****************  """

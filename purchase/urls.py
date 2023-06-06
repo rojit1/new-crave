@@ -11,14 +11,16 @@ urlpatterns = [
 ]
 
 
-from .views import ProductPurchaseCreateView, PurchaseListView, PurchaseDetailView, MarkPurchaseVoid, PurchaseBookListView
+from .views import ProductPurchaseCreateView, PurchaseListView, PurchaseDetailView, MarkPurchaseVoid, PurchaseBookListView, VendorWisePurchaseView
 
 urlpatterns += [
     path('purchase/create/', ProductPurchaseCreateView.as_view(), name="product_purchase_create"),
     path('purchase/<int:pk>/', PurchaseDetailView.as_view(), name="purchase_detail"),
     path('purchase/void/<int:pk>', MarkPurchaseVoid.as_view(), name="purchase_void"),
     path('purchase/', PurchaseListView.as_view(), name="purchase_list"),
-    path('pb/', PurchaseBookListView.as_view(), name="purchase_book_list")
+    path('pb/', PurchaseBookListView.as_view(), name="purchase_book_list"),
+    path('vwp/', VendorWisePurchaseView.as_view(), name="vendor_wise_purchase"),
+
 ]
 
 from .views import AssetPurchaseList,AssetPurchaseDetail,AssetPurchaseCreate,AssetPurchaseUpdate#,AssetPurchaseDelete
