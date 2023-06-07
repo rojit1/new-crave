@@ -40,4 +40,10 @@ path('prdctn/create/', ProductionCreate.as_view(), name='production_create'),
 path('prdctn/<int:pk>/update/', ProductionUpdate.as_view(), name='production_update'),
 path('prdctn/delete', ProductionDelete.as_view(), name='production_delete'),
 ]
-       
+
+
+
+
+
+
+

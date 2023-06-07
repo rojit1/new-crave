@@ -415,7 +415,17 @@ class MarkBillVoid(BillMixin, View):
         )
 
 
-class BillList(BillMixin, ListView):
+class BillList(ListView):
+    model = Bill
+    form_class = BillForm
+    paginate_by = 50
+    success_url = reverse_lazy("bill_list")
+    search_lookup_fields = [
+        "customer_name",
+        "invoice_number",
+        "customer_tax_number",
+        "terminal",
+    ]
     template_name = "bill/bill_list.html"
     queryset = Bill.objects.filter(is_deleted=False).order_by('-created_at')
 

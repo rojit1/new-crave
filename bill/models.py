@@ -7,7 +7,7 @@ from organization.models import Organization
 from product.models import Product
 from root.utils import BaseModel
 from django.db.models.signals import post_save
-from .utils import create_journal_for_bill, update_terminal_amount
+from .utils import create_journal_for_bill, update_terminal_amount, create_journal_for_complimentary
 
 User = get_user_model()
 
@@ -216,11 +216,18 @@ class Bill(BaseModel):
 def create_invoice_number(sender, instance, created, **kwargs):
     current_fiscal_year = Organization.objects.last().current_fiscal_year
 
+    if created and instance.payment_mode.lower().strip() == "complimentary":
+        # create_journal_for_complimentary(instance)
+        try:
+            create_journal_for_complimentary(instance)
+        except Exception as e:
+            pass
+
     if created and not instance.payment_mode.lower().strip() == "complimentary":
         try:
             create_journal_for_bill(instance)
         except Exception as e:
-            pass
+            print(e)
 
         branch = instance.branch.branch_code
         terminal = instance.terminal

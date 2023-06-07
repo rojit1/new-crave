@@ -17,7 +17,27 @@ def create_journal_for_bill(instance):
     payment_mode = instance.payment_mode.lower()
     grand_total = Decimal(instance.grand_total)
     tax_amount = Decimal(instance.tax_amount)
+    discount_amount = Decimal(instance.discount_amount)
     sale_ledger = AccountLedger.objects.get(ledger_name='Sales')
+
+
+    if discount_amount > 0:
+        discount_expenses = AccountLedger.objects.get(ledger_name__iexact='Discount Expenses')
+        discount_sales = AccountLedger.objects.get(ledger_name__iexact='Discount Sales')
+
+        journal_entry = TblJournalEntry.objects.create(employee_name='Created automatically during sale', journal_total=discount_amount)
+        TblDrJournalEntry.objects.create(particulars="Complimentary Expenses A/C Dr.", debit_amount = discount_amount, journal_entry=journal_entry, ledger=discount_expenses)
+        TblCrJournalEntry.objects.create(particulars="To Complimentary Sales", credit_amount = discount_amount, journal_entry=journal_entry, ledger=discount_sales)
+        
+        discount_expenses.total_value += discount_amount
+        discount_expenses.save()
+
+        discount_sales.total_value += discount_amount
+        discount_sales.save()
+
+
+
+
 
     if payment_mode == 'credit':
         account_chart = AccountChart.objects.get(group='Sundry Debtors')
@@ -69,7 +89,6 @@ def create_journal_for_bill(instance):
         sale_ledger.save()
 
     else:
-        
         cash_ledger = AccountLedger.objects.get(ledger_name='Cash-In-Hand')
         update_terminal_sub_ledger(terminal=instance.terminal, branch=instance.branch.branch_code, total=grand_total, ledger=cash_ledger)
         cash_ledger.total_value = cash_ledger.total_value + grand_total
@@ -100,9 +119,19 @@ def update_terminal_amount(terminal, branch, total):
     except AccountSubLedger.DoesNotExist:
         AccountSubLedger.objects.create(sub_ledger_name=subled_name, total_value=total, is_editable=False, ledger=sale_ledger)
 
-    
-class MyClass:
+def create_journal_for_complimentary(instance):
+    grand_total = Decimal(instance.grand_total)
+    complimentary_sales = AccountLedger.objects.get(ledger_name__iexact='complimentary sales')
+    complimentary_expenses = AccountLedger.objects.get(ledger_name__iexact='complimentary expenses')
 
-    def __init__(self):
-        """
-        """
+    journal_entry = TblJournalEntry.objects.create(employee_name='Created automatically during sale', journal_total=grand_total)
+    TblDrJournalEntry.objects.create(particulars="Complimentary Expenses A/C Dr.", debit_amount = grand_total, journal_entry=journal_entry, ledger=complimentary_expenses)
+    TblCrJournalEntry.objects.create(particulars="To Complimentary Sales", credit_amount = grand_total, journal_entry=journal_entry, ledger=complimentary_sales)
+    
+    complimentary_expenses.total_value += grand_total
+    complimentary_expenses.save()
+
+    complimentary_sales.total_value += grand_total
+    complimentary_sales.save()
+
+    

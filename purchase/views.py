@@ -615,4 +615,3 @@ class ProductionUpdate(ProductionMixin, UpdateView):
 
 class ProductionDelete(ProductionMixin, DeleteMixin, View):
     pass
-
