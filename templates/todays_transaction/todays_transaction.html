@@ -43,16 +43,16 @@
           {% for object in terminals %}
              <tr class="odd" id="obj-{{object.pk}}">
                 <td>{{object.terminal}}</td>
-                <td>{{object.total_sale}}</td>
-                <td>{{object.vat}}</td>
-                <td>{{object.net_sale}}</td>
-                <td>{{object.food}}</td>
-                <td>{{object.beverage}}</td>
-                <td>{{object.others}}</td>
-                <td>{{object.discount}}</td>
-                <td>{{object.cash}}</td>
-                <td>{{object.credit_card}}</td>
-                <td>{{object.mobile_payment}}</td>
+                <td>{{object.total_sale|floatformat:2}}</td>
+                <td>{{object.vat|floatformat:2}}</td>
+                <td>{{object.net_sale|floatformat:2}}</td>
+                <td>{{object.food|floatformat:2}}</td>
+                <td>{{object.beverage|floatformat:2}}</td>
+                <td>{{object.others|floatformat:2}}</td>
+                <td>{{object.discount|floatformat:2}}</td>
+                <td>{{object.cash|floatformat:2}}</td>
+                <td>{{object.credit_card|floatformat:2}}</td>
+                <td>{{object.mobile_payment|floatformat:2}}</td>
              </tr>
              {%empty%}
              {% include 'components/empty.html' with  title="Transaction"%}

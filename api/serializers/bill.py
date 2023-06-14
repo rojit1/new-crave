@@ -11,6 +11,7 @@ from bill.models import (
     TblTaxEntry,
     BillPayment
 )
+from bill.utils import create_split_payment_accounting
 from product.models import BranchStockTracking
 from organization.models import Organization
 from datetime import date
@@ -85,7 +86,13 @@ class BillSerializer(ModelSerializer):
         bill = Bill.objects.create(
             **validated_data, organization=Organization.objects.last(), bill_count_number=bill_count_no
         )
-
+        if split_payment:
+            branch = invoice_no.split('-')[0]
+            terminal = validated_data.get('terminal')
+            tax_amount = validated_data.get('tax_amount')
+            customer = validated_data.get('customer')
+            discount_amount = validated_data.get('discount_amount')
+            create_split_payment_accounting(split_payment, validated_data.get('grand_total'), branch, terminal, tax_amount, customer, discount_amount)
         for payment in split_payment:
             BillPayment.objects.create(bill=bill, payment_mode=payment['payment_mode'], rrn=payment['rrn'], amount=payment['amount'])
 

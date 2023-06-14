@@ -126,14 +126,13 @@ class ProductUploadView(View):
             for row in sheet.iter_rows():
                 row_data = list()
                 for cell in row:
-                    row_data.append(str(cell.value))
+                    row_data.append(cell.value)
                 row_data.insert(0, sheet.title)
                 excel_data.append(row_data)
-        if len(excel_data[0]) != 9:
-            messages.error(request, 'Please Check your excel Format')
-            return redirect(reverse_lazy('product_create'))
-
+        
         for data in excel_data:
+            if not all(data[0:9]):
+                continue
             if data[1].lower() == 'group':
                 continue
             try:

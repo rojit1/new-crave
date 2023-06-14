@@ -7,7 +7,7 @@ from organization.models import Organization
 from product.models import Product
 from root.utils import BaseModel
 from django.db.models.signals import post_save
-from .utils import create_journal_for_bill, update_terminal_amount, create_journal_for_complimentary
+from .utils import create_journal_for_bill, update_terminal_amount, create_journal_for_complimentary, reverse_accounting
 
 User = get_user_model()
 
@@ -97,6 +97,13 @@ class TablReturnEntry(models.Model):
 
     def __str__(self):
         return f"{self.idtblreturnEntry}- {self.bill_date} - {self.bill_no}"
+    
+
+@receiver(post_save, sender=TablReturnEntry)
+def reverse_accounting_after_void(sender, instance, created, **kwargs):
+    if created:
+        reverse_accounting(instance)
+
 
 
 class PaymentType(BaseModel):
@@ -128,19 +135,6 @@ class BillItem(BaseModel):
 
     def __str__(self):
         return f"{self.product_title}"
-
-    # def save(self, *args, **kwrgs):
-    #     try:
-    #         print("-------------------------------")
-    #         print("self product")
-    #         print(self.new_product)
-    #         if self.new_product:
-    #             self.product_title = self.new_product.title
-    #             self.unit_title = self.new_product.unit
-    #             self.amount = self.product_quantity * self.rate
-    #             super().save(*args, **kwrgs)
-    #     except:
-    #         pass
 
 
 ''' Signal for Decresing Product Stock after Sold '''
@@ -217,17 +211,17 @@ def create_invoice_number(sender, instance, created, **kwargs):
     current_fiscal_year = Organization.objects.last().current_fiscal_year
 
     if created and instance.payment_mode.lower().strip() == "complimentary":
-        # create_journal_for_complimentary(instance)
         try:
             create_journal_for_complimentary(instance)
         except Exception as e:
             pass
 
     if created and not instance.payment_mode.lower().strip() == "complimentary":
-        try:
-            create_journal_for_bill(instance)
-        except Exception as e:
-            print(e)
+        if not instance.payment_mode.lower().strip() == "split payment":
+            try:
+                create_journal_for_bill(instance)
+            except Exception as e:
+                print(e)
 
         branch = instance.branch.branch_code
         terminal = instance.terminal

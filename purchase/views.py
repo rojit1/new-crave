@@ -18,7 +18,6 @@ from .models import Vendor, ProductPurchase, Purchase, TblpurchaseEntry, Tblpurc
 import decimal
 from bill.views import ExportExcelMixin
 import json
-import pandas as pd
 
 class VendorMixin:
     model = Vendor
@@ -391,8 +390,6 @@ class VendorWisePurchaseView(ExportExcelMixin, View):
             purchases = Purchase.objects.filter(bill_date__range=[from_date, to_date])
         else:
             purchases = Purchase.objects.all()
-        print('PURCHASES')
-        print(purchases)
         for purchase in purchases:
             if purchase.vendor:
                 vendor = vendors.get(purchase.vendor.name)
@@ -404,8 +401,6 @@ class VendorWisePurchaseView(ExportExcelMixin, View):
         
 
         return render(request, 'purchase/vendorwisepurchase.html', {'object_list':data})
-
-
 
 
 

@@ -391,6 +391,7 @@ class MarkBillVoid(BillMixin, View):
         bill.status = False
         bill.save()
 
+
         miti = bill.transaction_miti
         quantity = bill.bill_items.count()
         return_entry = TablReturnEntry(
@@ -1616,7 +1617,7 @@ class TodaysTransactionView(View):
 
     def get(self, request):
         today = date.today()
-        bills = Bill.objects.filter(transaction_date=today)
+        bills = Bill.objects.filter(transaction_date=today, status=True)
         last_update = Bill.objects.order_by('-created_at').first().created_at if Bill.objects.order_by('-created_at') else None
         
         terminals = {}

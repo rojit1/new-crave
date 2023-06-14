@@ -7,6 +7,7 @@ from api.serializers.organization import BranchSerializer, OrganizationSerialize
 from organization.models import Branch, Organization, Table, Terminal
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, AllowAny
 from django.conf import settings
+from datetime import datetime
 
 """  """
 import os
@@ -59,6 +60,7 @@ class OrganizationApi(ReadOnlyModelViewSet):
     def list(self, request, *args, **kwargs):
         instance = Organization.objects.last()
         serializer_data = self.get_serializer(instance).data
+        serializer_data['server_date'] = datetime.now().date()
         return Response(serializer_data)
 
 

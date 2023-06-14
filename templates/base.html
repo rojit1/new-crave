@@ -27,8 +27,9 @@
                <div class="aside-logo flex-column-auto" id="kt_aside_logo">
                   <!--begin::Logo-->
                   <a href="{% url 'org:index' %}">
-
+                     {% if org_global.org_logo %}
                      <img alt="Logo" src="{{org_global.org_logo.url}}" class="h-55px logo" />
+                     {% endif %}
                   </a>
                   <!--end::Logo-->
                   <!--begin::Aside toggler-->
@@ -65,7 +66,9 @@
                      <!--begin::Mobile logo-->
                      <div class="d-flex align-items-center flex-grow-1 flex-lg-grow-0">
                         <a href="{% url 'org:index' %}" class="d-lg-none">
+                           {% if org_global.org_logo %}
                            <img alt="Logo" src="{{org_global.org_logo.url}}" class="h-25px" />
+                           {% endif %}
                         </a>
                      </div>
                      <!--end::Mobile logo-->
