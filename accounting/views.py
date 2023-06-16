@@ -410,7 +410,6 @@ class TrialBalanceView(View):
 
             if len(included_ledgers) >= len(all_ledgers_list):
                 break
-        print(trial_balance)
 
         # for trans in before_transactions:
         #     if trans.ledger_name not in included_ledgers:

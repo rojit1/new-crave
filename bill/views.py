@@ -224,7 +224,7 @@ class BillMixin(IsAdminMixin):
     model = Bill
     form_class = BillForm
     paginate_by = 50
-    queryset = Bill.objects.filter(is_deleted=False)
+    queryset = Bill.objects.filter(is_deleted=False).order_by('-created_at')
     success_url = reverse_lazy("bill_list")
     search_lookup_fields = [
         "customer_name",
@@ -234,12 +234,11 @@ class BillMixin(IsAdminMixin):
     ]
 
     def get_queryset(self, *args, **kwargs):
-        qc = Bill.objects.filter(is_deleted=False)
-        # qc = super().get_queryset(*args, **kwargs)
-        # qc = self.search(qc)
-        # qc = self.date_filter(qc)
-        # qc = self.terminalSearch(qc)
-
+        qc = Bill.objects.filter(is_deleted=False).order_by('-created_at')
+        qc = super().get_queryset(*args, **kwargs)
+        qc = self.search(qc)
+        qc = self.date_filter(qc)
+        qc = self.terminalSearch(qc)
         return qc
 
     def date_filter(self, qc):
@@ -416,19 +415,9 @@ class MarkBillVoid(BillMixin, View):
         )
 
 
-class BillList(ListView):
-    model = Bill
-    form_class = BillForm
-    paginate_by = 50
-    success_url = reverse_lazy("bill_list")
-    search_lookup_fields = [
-        "customer_name",
-        "invoice_number",
-        "customer_tax_number",
-        "terminal",
-    ]
+class BillList(BillMixin, ListView):
     template_name = "bill/bill_list.html"
-    queryset = Bill.objects.filter(is_deleted=False).order_by('-created_at')
+    # queryset = Bill.objects.filter(is_deleted=False).order_by('-created_at')
 
 
 class SalesInvoiceSummaryRegister(
@@ -1524,6 +1513,73 @@ class SalesInvoiceAnalysis(BillFilterDateMixin, ExportExcelMixin, ListView):
 
                 row_num += 1
 
+        wb.save(response)
+        return response
+
+
+class TypeWiseSale(BillFilterDateMixin,ExportExcelMixin, ListView):
+    template_name = "bill/report/type_wise_sales.html"
+    queryset = Bill.objects.all()
+
+    def get_processed_data(self):
+        qs = self.get_queryset()
+        sales_type = self.request.GET.get('sales_type', 'all')
+        if sales_type == "complimentary":
+            qs = qs.filter(payment_mode="complimentary")
+        elif sales_type == "others":
+            qs = qs.filter(~Q(payment_mode="complimentary"))
+        data = {
+            'food':[],
+            'beverage':[],
+            'others':[],
+        }
+        for bill in qs:
+            for item in bill.bill_items.all():
+                product_title = item.product.title
+                items_list = data.get(item.product.type.title.lower().strip())
+                item_exists = list(filter(lambda x: x['name'] == product_title, items_list))
+                if not item_exists:
+                    items_list.append({'name':product_title,'quantity':item.product_quantity, 'amount':item.amount, 'unit':item.unit_title, 'rate':item.rate})
+                else:
+                    item_exists[0]['quantity'] += item.product_quantity
+                    item_exists[0]['amount'] += item.amount
+        return data
+        
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        branches = Branch.objects.active()
+        context['branches'] = branches
+        context['data'] = self.get_processed_data()
+        return context
+    
+    def export_to_xls(self):
+        response = HttpResponse(content_type="application/ms-excel")
+        response[
+            "Content-Disposition"
+        ] = 'attachment; filename="F&B_report.xls"'
+
+        columns = [
+            "type",
+            "name",
+            "unit",
+            "quantity",
+            "rate",
+            "amount",
+        ]
+        wb, ws, row_num, font_style_normal, font_style_bold = self.init_xls(
+            "Food and Beverage Sales Report", columns
+        )
+        data = self.get_processed_data()
+        new_data = []
+        for k, v in data.items():
+            new_data.append([k])
+            for item in v:
+                new_data.append(['',item['name'], item['unit'], item['quantity'], item['rate'], item['amount']])
+        for row in new_data:
+            row_num += 1
+            for col_num in range(len(row)):
+                value = row[col_num]
+                ws.write(row_num, col_num, value, font_style_normal)
         wb.save(response)
         return response
 

@@ -19,6 +19,7 @@ from .views import (
     SalesInvoiceSummaryRegister,
     SalesInvoiceAnalysis,
     PaymentModeSummary,
+    TypeWiseSale
 )
 
 urlpatterns += [
@@ -60,7 +61,8 @@ urlpatterns += [
         name="party_wise_sales",
     ),
     path("sia/", SalesInvoiceAnalysis.as_view(), name="sales_invoice_analysis"),
-    path("pms/", PaymentModeSummary.as_view(), name="payment_mode_summary")
+    path("pms/", PaymentModeSummary.as_view(), name="payment_mode_summary"),
+    path("tws/", TypeWiseSale.as_view(), name="type_wise_sale"),
     # path(
     #     "returns/export/",
     #     ReturnEntryViewExportExcel.as_view(),

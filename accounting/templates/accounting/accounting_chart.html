@@ -76,11 +76,13 @@
                 {% if ledger.accountsubledger_set.count > 0 %}
                 <ul class="subledger-ul d-none">
                   {% for sub in ledger.accountsubledger_set.all %}
+                  {% if sub.total_value  > 0 %}
                   <li>
                     <i class="bi bi-arrow-return-right text-dark fa-lg"></i>
                     <span ondblclick="handleDblClick(this)" onblur="subLedgerUpdate(this)" id={{sub.pk}} data-is-editable="{{sub.is_editable}}">{{sub}}</span>
                     <span class="fw-bold">({{sub.total_value}})</span>
                   </li>
+                  {% endif %}
                   {% endfor %}
                 </ul>
                 {% endif %}
@@ -227,11 +229,13 @@
                 {% if ledger.accountsubledger_set.count > 0 %}
                 <ul class="subledger-ul d-none">
                   {% for sub in ledger.accountsubledger_set.all %}
+                  {% if sub.total_value  > 0 %}
                   <li>
                     <i class="bi bi-arrow-return-right text-dark fa-lg"></i>
                     <span ondblclick="handleDblClick(this)" onblur="subLedgerUpdate(this)" id={{sub.pk}} data-is-editable="{{sub.is_editable}}">{{sub}}</span>
                     <span class="fw-bold">({{sub.total_value}})</span>
                   </li>
+                  {% endif %}
                   {% endfor %}
                 </ul>
                 {% endif %}

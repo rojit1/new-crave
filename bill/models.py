@@ -226,7 +226,7 @@ def create_invoice_number(sender, instance, created, **kwargs):
         branch = instance.branch.branch_code
         terminal = instance.terminal
 
-        update_terminal_amount(terminal=terminal, branch=branch, total=instance.grand_total)
+        update_terminal_amount(terminal=terminal, branch=branch, total=instance.grand_total-instance.tax_amount)
 
         bill_number = 0
         invoice_number = ""

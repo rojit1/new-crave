@@ -85,6 +85,19 @@
                           {% endfor %}
                         </select>
 
+                        {% if sales_type %}
+                           <select
+                           name="sales_type"
+                           data-control="select2",
+                           data-placeholder="Select Type"
+                           class="form-select form-control bg-transparenform-control font-size-lg-16 shadow-none hero-form font-weight-bold border-0 pl-0 bg-transparent text-lightt">
+                              <option value="all" selected>All</option>
+                              <option value="complimentary">Complimentary</option>
+                              <option value="others">Others</option>
+                           </select>
+
+                        {% endif %}
+
                         {% if payment_mode %}
                            <select
                            name="payment_mode"
@@ -132,7 +145,7 @@
             <!--end::Add customer-->
             {% endif %}
             {% if export_url and object_list %}
-            <a href="{% url export_url %}{% if format %}?format={{format}}&q={{request.GET.q}}&{% if request.GET.payment_mode %}payment_mode={{request.GET.payment_mode}}{% endif %}&fromDate={{request.GET.fromDate}}&toDate={{request.GET.toDate}}&branch_code={{request.GET.branch_code}}{% endif %}" class="btn btn-primary">Export</a>
+            <a href="{% url export_url %}{% if format %}?format={{format}}&q={{request.GET.q}}&{% if request.GET.payment_mode %}payment_mode={{request.GET.payment_mode}}{% endif %}&fromDate={{request.GET.fromDate}}&toDate={{request.GET.toDate}}&branch_code={{request.GET.branch_code}}{% endif %}{% if request.GET.sales_type %}&sales_type={{request.GET.sales_type}}{% endif %}" class="btn btn-primary">Export</a>
             {% endif %}
          </div>
          <!--end::Toolbar-->
